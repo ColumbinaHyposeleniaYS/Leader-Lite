@@ -334,28 +334,26 @@ public class HUD extends Module {
                     if (barModeVal == 0) {
                         boolean alignLeft = this.posX.getValue() == 0;
                         if (alignLeft) {
-                            float edge = bgX1;
                             if (this.shadow.getValue()) {
-                                RenderUtil.drawRect(edge - 3.0F, barY1, edge - 2.0F, barY2, color);
-                                RenderUtil.drawRect(edge - 2.0F, barY1, edge + 0.5F, barY2, (color & 16579836) >> 2 | color & 0xFF000000);
+                                RenderUtil.drawRect(sx - 3.0F, barY1, sx - 2.0F, barY2, color);
+                                RenderUtil.drawRect(sx - 2.0F, barY1, sx - 1.0F, barY2, (color & 16579836) >> 2 | color & 0xFF000000);
                             } else {
-                                RenderUtil.drawRect(edge - 2.0F, barY1, edge + 0.5F, barY2, color);
+                                RenderUtil.drawRect(sx - 2.0F, barY1, sx - 1.0F, barY2, color);
                             }
                         } else {
-                            float edge = bgX2;
                             if (this.shadow.getValue()) {
-                                RenderUtil.drawRect(edge - 0.5F, barY1, edge + 2.0F, barY2, (color & 16579836) >> 2 | color & 0xFF000000);
-                                RenderUtil.drawRect(edge + 2.0F, barY1, edge + 3.0F, barY2, color);
+                                RenderUtil.drawRect(sx + 1.0F, barY1, sx + 2.0F, barY2, (color & 16579836) >> 2 | color & 0xFF000000);
+                                RenderUtil.drawRect(sx + 2.0F, barY1, sx + 3.0F, barY2, color);
                             } else {
-                                RenderUtil.drawRect(edge - 0.5F, barY1, edge + 2.0F, barY2, color);
+                                RenderUtil.drawRect(sx + 1.0F, barY1, sx + 2.0F, barY2, color);
                             }
                         }
                     } else if (barModeVal == 1) {
                         boolean alignLeft = this.posX.getValue() == 0;
                         if (alignLeft) {
-                            RenderUtil.drawRect(bgX2 - 0.5F, barY1, bgX2 + 1.0F, barY2, color);
+                            RenderUtil.drawRect(bgX2, barY1, bgX2 + 1.0F, barY2, color);
                         } else {
-                            RenderUtil.drawRect(bgX1 - 1.0F, barY1, bgX1 + 0.5F, barY2, color);
+                            RenderUtil.drawRect(bgX1 - 1.0F, barY1, bgX1, barY2, color);
                         }
                     } else if (barModeVal == 2) {
                         float bw = 1.0F;
