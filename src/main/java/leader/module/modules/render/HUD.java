@@ -334,19 +334,9 @@ public class HUD extends Module {
                     if (barModeVal == 0) {
                         boolean alignLeft = this.posX.getValue() == 0;
                         if (alignLeft) {
-                            if (this.shadow.getValue()) {
-                                RenderUtil.drawRect(sx - 3.0F, barY1, sx - 2.0F, barY2, color);
-                                RenderUtil.drawRect(sx - 2.0F, barY1, sx - 1.0F, barY2, (color & 16579836) >> 2 | color & 0xFF000000);
-                            } else {
-                                RenderUtil.drawRect(sx - 2.0F, barY1, sx - 1.0F, barY2, color);
-                            }
+                            RenderUtil.drawRect(sx - 2.0F, barY1, sx - 1.0F, barY2, color);
                         } else {
-                            if (this.shadow.getValue()) {
-                                RenderUtil.drawRect(sx + 1.0F, barY1, sx + 2.0F, barY2, (color & 16579836) >> 2 | color & 0xFF000000);
-                                RenderUtil.drawRect(sx + 2.0F, barY1, sx + 3.0F, barY2, color);
-                            } else {
-                                RenderUtil.drawRect(sx + 1.0F, barY1, sx + 2.0F, barY2, color);
-                            }
+                            RenderUtil.drawRect(sx + 1.0F, barY1, sx + 2.0F, barY2, color);
                         }
                     } else if (barModeVal == 1) {
                         boolean alignLeft = this.posX.getValue() == 0;
