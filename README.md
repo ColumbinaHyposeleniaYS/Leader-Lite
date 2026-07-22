@@ -1,2 +1,3 @@
 # Leader-Lite
-A MineCraft Hack Client
+A Minecraft Hack Client
+Based On OpenMyau
