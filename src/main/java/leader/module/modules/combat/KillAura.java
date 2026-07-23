@@ -126,7 +126,7 @@ public class KillAura extends Module {
         this.sort = new ModeProperty("Sort", 0, new String[]{"Distance", "Health", "Hurt Time", "FOV"});
 
         this.autoBlock = new ModeProperty(
-                "AutoBlock", 0, new String[]{"None", "Vanilla","Hypixel", "Legit", "Fake","Hypixel(Without Noslow)","Hypixel Custom","HypixelTestA","HypixelLag"}
+                "AutoBlock", 0, new String[]{"None", "Vanilla","Hypixel", "Legit", "Fake","Hypixel(Without NoSlow)","Hypixel Custom","HypixelTestA","HypixelLag"}
         );
         this.autoBlockRequirePress = new BooleanProperty("AutoBlock Require Press", false);
         this.autoBlockCPS = new IntProperty("AutoBlock Aps", 10, 1, 20);
@@ -691,29 +691,20 @@ public class KillAura extends Module {
                                             break;
                                         case 1:
                                             if (this.isPlayerBlocking()) {
-                                                int randomSlot = new Random().nextInt(9);
-                                                while (randomSlot == mc.thePlayer.inventory.currentItem) {
-                                                    randomSlot = new Random().nextInt(9);
-                                                }
-                                                PacketUtil.sendPacket(new C09PacketHeldItemChange(randomSlot));
-                                                PacketUtil.sendPacket(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem));
-                                                this.stopBlock();
+                                                int handle = mc.thePlayer.inventory.currentItem;
+                                                PacketUtil.sendPacket(new C09PacketHeldItemChange(handle % 8 + 1));
+                                                PacketUtil.sendPacket(new C09PacketHeldItemChange(handle % 7 + 2));
+                                                PacketUtil.sendPacket(new C09PacketHeldItemChange(handle));
                                             }
                                             attack = false;
                                             blockTick = 2;
                                             break;
                                         case 2:
-                                            if (this.isPlayerBlocking()) {
-                                                int randomSlot = new Random().nextInt(9);
-                                                while (randomSlot == mc.thePlayer.inventory.currentItem) {
-                                                    randomSlot = new Random().nextInt(9);
-                                                }
-                                                PacketUtil.sendPacket(new C09PacketHeldItemChange(randomSlot));
-                                                PacketUtil.sendPacket(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem));
-                                                this.stopBlock();
-                                            }
-                                            Leader.blinkManager.setBlinkState(false,BlinkModules.AUTO_BLOCK);
-                                            swap = true;
+                                            int handle = mc.thePlayer.inventory.currentItem;
+                                            PacketUtil.sendPacket(new C09PacketHeldItemChange(handle % 8 + 1));
+                                            PacketUtil.sendPacket(new C09PacketHeldItemChange(handle % 7 + 2));
+                                            PacketUtil.sendPacket(new C09PacketHeldItemChange(handle));
+                                            attack = false;
                                             this.blockTick = 0;
                                             break;
                                         default:

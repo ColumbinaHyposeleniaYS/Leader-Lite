@@ -128,10 +128,10 @@ public class NoSlow extends Module {
                             while (randomSlot == mc.thePlayer.inventory.currentItem) {
                                 randomSlot = new Random().nextInt(9);
                             }
-                            PacketUtil.sendPacket(new C09PacketHeldItemChange(randomSlot));
-                            PacketUtil.sendPacket(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem));
-                            PacketUtil.sendPacket(new C07PacketPlayerDigging(C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
-                            mc.thePlayer.stopUsingItem();
+                            int handle = mc.thePlayer.inventory.currentItem;
+                            PacketUtil.sendPacket(new C09PacketHeldItemChange(handle % 8 + 1));
+                            PacketUtil.sendPacket(new C09PacketHeldItemChange(handle % 7 + 2));
+                            PacketUtil.sendPacket(new C09PacketHeldItemChange(handle));
                         }
                         delay = swapDelay.getValue();
                     }

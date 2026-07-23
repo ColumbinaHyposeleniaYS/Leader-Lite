@@ -42,9 +42,11 @@ public abstract class MixinEntityLivingBase extends MixinEntity {
         float speed = animations.swingSpeed.getValue();
         if (speed == 1.0F) return;
 
-        if (speed < 0.1F) speed = 0.1F; // 防止除零
+        if (speed < 0.1F) speed = 0.1F;
 
         int newDuration = Math.max(1, Math.round(6.0F / speed));
+
+        cir.setReturnValue(newDuration);
     }
 
         @Redirect(

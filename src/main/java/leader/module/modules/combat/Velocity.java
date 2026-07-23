@@ -194,6 +194,32 @@ public class Velocity extends Module {
     @EventTarget
     public void onUpdate(UpdateEvent event) {
         if (!isEnabled()) return;
+        if (event.getType() == EventType.PRE) {
+            int maxTick = this.rotateTick.getValue();
+            if (this.rotatoTickCounter > 0 && this.rotatoTickCounter <= maxTick) {
+                if (this.rotatoTickCounter == 1) {
+                    double deltaX = -this.knockbackX;
+                    double deltaZ = -this.knockbackZ;
+                    this.targetRotation = RotationUtil.getRotationsTo(deltaX, 0, deltaZ, event.getYaw(), event.getPitch());
+                }
+                if (this.targetRotation != null) {
+                    event.setRotation(this.targetRotation[0], this.targetRotation[1], 2);
+                    event.setPervRotation(this.targetRotation[0], 2);
+                }
+            }
+        }
+        if (event.getType() == EventType.PRE){
+            int maxTick = this.rotateTick.getValue();
+            if (this.rotatoTickCounter > 0 && this.rotatoTickCounter <= maxTick) {
+                this.rotatoTickCounter++;
+                if (this.rotatoTickCounter > maxTick) {
+                    this.rotatoTickCounter = 0;
+                    this.targetRotation = null;
+                    this.knockbackX = 0;
+                    this.knockbackZ = 0;
+                }
+            }
+        }
         if (mode.getValue() == 1) {
             if (reduce.getValue() && reduceMode.getValue() == 0) {
                 if (event.getType() == EventType.PRE) {
@@ -268,31 +294,7 @@ public class Velocity extends Module {
                     }
                 }
             }
-            if (event.getType() == EventType.PRE) {
-                int maxTick = this.rotateTick.getValue();
-                if (this.rotatoTickCounter > 0 && this.rotatoTickCounter <= maxTick) {
-                    if (this.rotatoTickCounter == 1) {
-                        double deltaX = -this.knockbackX;
-                        double deltaZ = -this.knockbackZ;
-                        this.targetRotation = RotationUtil.getRotationsTo(deltaX, 0, deltaZ, event.getYaw(), event.getPitch());
-                    }
-                    if (this.targetRotation != null) {
-                        event.setRotation(this.targetRotation[0], this.targetRotation[1], 2);
-                        event.setPervRotation(this.targetRotation[0], 2);
-                    }
-                }
-            }
             if (event.getType() == EventType.POST) {
-                int maxTick = this.rotateTick.getValue();
-                if (this.rotatoTickCounter > 0 && this.rotatoTickCounter <= maxTick) {
-                    this.rotatoTickCounter++;
-                    if (this.rotatoTickCounter > maxTick) {
-                        this.rotatoTickCounter = 0;
-                        this.targetRotation = null;
-                        this.knockbackX = 0;
-                        this.knockbackZ = 0;
-                    }
-                }
                 KillAura killAura = (KillAura)Leader.moduleManager.getModule(KillAura.class);
                 if (delayFlag && ((delay.getValue()
                         && (isInLiquidOrWeb() || Leader.delayManager.getDelay() >= (long) delayTicks.getValue() && !airBuffer.getValue()) || (mc.thePlayer.onGround && !groundDelay.getValue() && !airBuffer.getValue()))
@@ -383,9 +385,6 @@ public class Velocity extends Module {
         if (this.isEnabled() && this.rotatoTickCounter > 0 && this.rotatoTickCounter <= this.rotateTick.getValue()) {
             if (this.autoMove.getValue()) {
                 mc.thePlayer.movementInput.moveForward = 1.0F;
-            }
-            if (this.targetRotation != null && RotationState.isActived() && RotationState.getPriority() == 2.0F && MoveUtil.isForwardPressed()) {
-                MoveUtil.fixStrafe(RotationState.getSmoothedYaw());
             }
         }
     }
