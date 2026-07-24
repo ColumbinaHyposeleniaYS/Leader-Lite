@@ -362,8 +362,6 @@ public class RenderUtil {
         GL11.glLineWidth(2.0f);
         GlStateManager.resetColor();
     }
-
-    /** 渲染渐变色三角形（顶点颜色 → 底边颜色） */
     public static void drawGradientTriangle(float tipX, float tipY, float leftX, float leftY, float rightX, float rightY, int tipColor, int baseColor) {
         float ta = (tipColor >> 24 & 0xFF) / 255.0F;
         float tr = (tipColor >> 16 & 0xFF) / 255.0F;
@@ -386,15 +384,6 @@ public class RenderUtil {
         GL11.glDisable(GL11.GL_POLYGON_SMOOTH);
         GlStateManager.resetColor();
     }
-
-    /** 沿三角形周长绘制分段进度条 —— 从底边左端点顺时针填充
-     *  @param x0,y0  底边左端点
-     *  @param x1,y1  顶点
-     *  @param x2,y2  底边右端点
-     *  @param progress  0.0~1.0
-     *  @param lineWidth  线宽
-     *  @param filledColor  已填充颜色
-     *  @param emptyColor   未填充颜色  */
     public static void drawTriangleProgressBorder(
             float x0, float y0, float x1, float y1, float x2, float y2,
             float progress, float lineWidth, int filledColor, int emptyColor) {
@@ -675,8 +664,6 @@ public class RenderUtil {
         cameraFrustum.setPosition(RenderUtil.mc.getRenderViewEntity().posX, RenderUtil.mc.getRenderViewEntity().posY, RenderUtil.mc.getRenderViewEntity().posZ);
         return cameraFrustum.isBoundingBoxInFrustum(axisAlignedBB.expand(expand, expand, expand));
     }
-    // 加入到某个工具类，或者在每个组件内部作为私有方法
-    // 在 RenderUtil 中添加，或每个组件内部自行实现
     public static void drawRoundedRectWithGl(float x1, float y1, float x2, float y2, float radius, int color) {
         RenderUtil.enableRenderState();
         RenderUtil.drawRoundedRect(x1, y1, x2, y2, radius, color);

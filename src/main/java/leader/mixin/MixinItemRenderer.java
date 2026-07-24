@@ -62,7 +62,6 @@ public abstract class MixinItemRenderer {
     @Shadow
     protected abstract void doBowTransformations(float partialTicks, AbstractClientPlayer clientPlayer);
 
-
     @Shadow
     public abstract void renderItem(EntityLivingBase entityIn, ItemStack heldStack, ItemCameraTransforms.TransformType transform);
 
@@ -110,7 +109,48 @@ public abstract class MixinItemRenderer {
         final float swingProgress = player.getSwingProgress(partialTicks);
         final float pitch = player.prevRotationPitch + (player.rotationPitch - player.prevRotationPitch) * partialTicks;
         final float yaw = player.prevRotationYaw + (player.rotationYaw - player.prevRotationYaw) * partialTicks;
-        final float f4 = MathHelper.sin(MathHelper.sqrt_float(swingProgress) * (float) Math.PI);
+
+        if (animations.mode.getValue() == 3
+                && this.itemToRender != null
+                && this.itemToRender.getItem() instanceof net.minecraft.item.ItemSword) {
+
+            this.rotateArroundXAndY(pitch, yaw);
+            this.setLightMapFromPlayer(player);
+            this.rotateWithPlayerRotations(player, partialTicks);
+
+            GlStateManager.pushMatrix();
+            GlStateManager.enableRescaleNormal();
+            float fovScale = Math.max(
+                    0.1F,
+                    1.0F - animations.itemFov.getValue() * 0.1F
+            );
+
+            GlStateManager.scale(
+                    1.0F,
+                    1.0F,
+                    fovScale
+            );
+
+            Animations.renderDragonClaws(
+                    partialTicks,
+                    equipProgress,
+                    swingProgress
+            );
+
+            GlStateManager.disableRescaleNormal();
+            GlStateManager.popMatrix();
+
+            GlStateManager.color(
+                    1.0F,
+                    1.0F,
+                    1.0F,
+                    1.0F
+            );
+
+            RenderHelper.disableStandardItemLighting();
+            ci.cancel();
+            return;
+        }
 
         GL11.glTranslated(animations.itemPosX.getValue().doubleValue(), animations.itemPosY.getValue().doubleValue(), animations.itemPosZ.getValue().doubleValue());
         this.rotateArroundXAndY(pitch, yaw);

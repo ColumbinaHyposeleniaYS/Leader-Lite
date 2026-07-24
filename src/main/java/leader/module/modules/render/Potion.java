@@ -35,6 +35,7 @@ public class Potion extends Module {
     private List<PotionEffect> currentEffects = new ArrayList<>();
 
     public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"RIGHT", "LEFT"});
+    public final ModeProperty displayMode = new ModeProperty("display-mode", 0, new String[]{"Bar", "Circle"});
     public final IntProperty offsetX = new IntProperty("offset-x", 2, 0, 255);
     public final IntProperty offsetY = new IntProperty("offset-y", 2, 0, 255);
     public final FloatProperty scale = new FloatProperty("scale", 1.0F, 0.5F, 1.5F);
@@ -92,12 +93,25 @@ public class Potion extends Module {
                 )))
                 .collect(Collectors.toList());
         updateMaxDurations();
+        GlStateManager.pushMatrix();
+        GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 0.0F);
 
-        ScaledResolution sr = new ScaledResolution(mc);
-        float screenWidth = sr.getScaledWidth();
-        float screenHeight = sr.getScaledHeight();
+        int index = 0;
+        boolean doBlur = this.blur.getValue();
+        float invScale = 1.0F / this.scale.getValue();
         boolean isRight = this.mode.getValue() == 0;
 
+        if (this.displayMode.getValue() == 1) {
+            renderCircle(index, doBlur, invScale, isRight);
+        } else {
+            renderBar(index, doBlur, invScale, isRight);
+        }
+
+        GlStateManager.popMatrix();
+    }
+
+    private void renderBar(int index, boolean doBlur, float invScale, boolean isRight) {
+        float screenWidth = new ScaledResolution(mc).getScaledWidth();
         float cardWidth = 130.0F;
         float cardHeight = 28.0F;
         float gap = 2.0F;
@@ -107,27 +121,18 @@ public class Potion extends Module {
         float textY2 = textY1 + textHeight + 1.0F;
         float iconSize = cardHeight - 4.0F;
         float iconOffset = iconSize + 4.0F;
-
         float offX = this.offsetX.getValue() + 4.0F;
         float offY = this.offsetY.getValue() + 4.0F;
-        float invScale = 1.0F / this.scale.getValue();
-        boolean doBlur = this.blur.getValue();
-
         float baseX = isRight ? (screenWidth - cardWidth - offX) * invScale : offX * invScale;
         float baseY = offY * invScale;
         float step = (cardHeight + gap) * invScale;
-
-        GlStateManager.pushMatrix();
-        GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 0.0F);
-
-        int index = 0;
         for (PotionEffect effect : currentEffects) {
             net.minecraft.potion.Potion potion = net.minecraft.potion.Potion.potionTypes[effect.getPotionID()];
             int id = effect.getPotionID();
             int maxDur = potionMaxDurations.getOrDefault(id, Math.max(effect.getDuration(), 1));
             float ratio = Math.min((float) effect.getDuration() / (float) maxDur, 1.0F);
             int potionColor = potion.getLiquidColor();
-            Color themeColor = new Color(potionColor);
+            Color themeColor = new Color((potionColor & 0x00FFFFFF) | 0xFF000000, true);
             String name = getPotionName(effect);
             String durationStr = net.minecraft.potion.Potion.getDurationString(effect);
 
@@ -191,8 +196,147 @@ public class Potion extends Module {
 
             index++;
         }
+    }
 
-        GlStateManager.popMatrix();
+    private void renderCircle(int index, boolean doBlur, float invScale, boolean isRight) {
+        float cardWidth = 110.0F;
+        float cardHeight = 30.0F;
+        float gap = 3.0F;
+        float radius = 3.5F;
+        float textScale = this.fontScale.getValue();
+        float textHeight = FontManager.getFontHeight() * textScale;
+        float textY1 = 4.0F;
+        float textY2 = textY1 + textHeight + 1.0F;
+        float iconSize = 18.0F;
+        float iconOffset = iconSize + 4.0F;
+        float offX = this.offsetX.getValue() + 4.0F;
+        float offY = this.offsetY.getValue() + 4.0F;
+        float baseX = isRight ? (new ScaledResolution(mc).getScaledWidth() - cardWidth - offX) * invScale : offX * invScale;
+        float baseY = offY * invScale;
+        float step = (cardHeight + gap) * invScale;
+
+        for (PotionEffect effect : currentEffects) {
+            net.minecraft.potion.Potion potion = net.minecraft.potion.Potion.potionTypes[effect.getPotionID()];
+            int id = effect.getPotionID();
+            int maxDur = potionMaxDurations.getOrDefault(id, Math.max(effect.getDuration(), 1));
+            float ratio = Math.min((float) effect.getDuration() / (float) maxDur, 1.0F);
+            int potionColor = potion.getLiquidColor();
+            Color themeColor = new Color((potionColor & 0x00FFFFFF) | 0xFF000000, true);
+            String name = getPotionName(effect);
+            String durationStr = net.minecraft.potion.Potion.getDurationString(effect);
+
+            float x = baseX;
+            float y = baseY + index * step;
+
+            if (doBlur) {
+                final float bx = x;
+                final float by = y;
+                ShaderElement.addBlurTask(() -> {
+                    RenderUtil.enableRenderState();
+                    RenderUtil.drawRoundedRect(bx, by, bx + cardWidth, by + cardHeight, radius, -1);
+                    RenderUtil.disableRenderState();
+                });
+            }
+
+            RenderUtil.enableRenderState();
+            RenderUtil.drawRoundedRect(x, y, x + cardWidth, y + cardHeight, radius, new Color(0, 0, 0, 0.45F).getRGB());
+            RenderUtil.disableRenderState();
+
+            float cx = x + iconSize / 2.0F + 2.0F;
+            float cy = y + cardHeight / 2.0F;
+            float ringRadius = Math.min(iconSize / 2.0F + 1.5F, cardHeight / 2.0F - 1.0F);
+            float ringThickness = 1.5F;
+
+            drawProgressRing(cx, cy, ringRadius, ringThickness, ratio, themeColor);
+
+            RenderUtil.disableRenderState();
+
+            if (potion.hasStatusIcon()) {
+                GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+                mc.getTextureManager().bindTexture(new ResourceLocation("textures/gui/container/inventory.png"));
+                int iconIndex = potion.getStatusIconIndex();
+                float u = iconIndex % 8 * 18;
+                float v = 198 + iconIndex / 8 * 18;
+                GlStateManager.enableBlend();
+                GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                Gui.drawScaledCustomSizeModalRect((int) (x + 2.0F), (int) (y + (cardHeight - iconSize) / 2.0F), u, v, 18, 18, (int) iconSize, (int) iconSize, 256.0F, 256.0F);
+                GlStateManager.disableBlend();
+            }
+
+            GlStateManager.disableDepth();
+            GlStateManager.enableBlend();
+            GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(x + iconOffset, y + textY1, 0.0F);
+            GlStateManager.scale(textScale, textScale, 1.0F);
+            FontManager.drawString(name, 0.0F, 0.0F, -1, false);
+            GlStateManager.popMatrix();
+
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(x + iconOffset, y + textY2, 0.0F);
+            GlStateManager.scale(textScale, textScale, 1.0F);
+            FontManager.drawString(durationStr, 0.0F, 0.0F, themeColor.getRGB(), false);
+            GlStateManager.popMatrix();
+
+            GlStateManager.enableDepth();
+            GlStateManager.disableBlend();
+
+            index++;
+        }
+    }
+
+    private void drawProgressRing(float cx, float cy, float r, float thickness, float ratio, Color color) {
+        GlStateManager.pushAttrib();
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GlStateManager.disableTexture2D();
+        GlStateManager.disableCull();
+        GlStateManager.disableAlpha();
+        GlStateManager.disableDepth();
+
+        float rC = color.getRed() / 255f;
+        float gC = color.getGreen() / 255f;
+        float bC = color.getBlue() / 255f;
+        float innerR = r - thickness;
+        int segs = 48;
+
+        GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.25F);
+        GL11.glBegin(GL11.GL_TRIANGLE_STRIP);
+        for (int i = 0; i <= segs; i++) {
+            double angle = Math.PI * 2 * i / segs - Math.PI / 2;
+            float cos = (float) Math.cos(angle);
+            float sin = (float) Math.sin(angle);
+            GL11.glVertex2f(cx + cos * r, cy + sin * r);
+            GL11.glVertex2f(cx + cos * innerR, cy + sin * innerR);
+        }
+        GL11.glEnd();
+
+        int pieDeg = (int) (ratio * 360);
+        if (pieDeg < 1) pieDeg = 1;
+        GL11.glColor4f(rC, gC, bC, 0.7F);
+        GL11.glBegin(GL11.GL_TRIANGLE_FAN);
+        GL11.glVertex2f(cx, cy);
+        for (int i = 0; i <= segs; i++) {
+            double angle = Math.toRadians(i * pieDeg / (double) segs - 90.0);
+            GL11.glVertex2f(cx + (float) Math.cos(angle) * r, cy + (float) Math.sin(angle) * r);
+        }
+        GL11.glEnd();
+
+        GlStateManager.popAttrib();
+    }
+
+    private void drawRing(float cx, float cy, float r, float thickness, int startDeg, int endDeg, int segments) {
+        float innerR = r - thickness;
+        GL11.glBegin(GL11.GL_TRIANGLE_STRIP);
+        for (int i = 0; i <= segments; i++) {
+            float angle = (float) Math.toRadians(startDeg + (endDeg - startDeg) * i / (float) segments);
+            float cos = (float) Math.cos(angle);
+            float sin = (float) Math.sin(angle);
+            GL11.glVertex2f(cx + cos * r, cy + sin * r);
+            GL11.glVertex2f(cx + cos * innerR, cy + sin * innerR);
+        }
+        GL11.glEnd();
     }
 
     public void drawBlur() {

@@ -110,6 +110,7 @@ public class Leader {
         moduleManager.modules.put(MCF.class, new MCF());
         moduleManager.modules.put(NameTags.class, new NameTags());
         moduleManager.modules.put(Notification.class, new Notification());
+        moduleManager.modules.put(Watermark.class, new Watermark());
         moduleManager.modules.put(Potion.class, new Potion());
         moduleManager.modules.put(NickHider.class, new NickHider());
         moduleManager.modules.put(NoFall.class, new NoFall());
