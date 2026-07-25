@@ -120,16 +120,12 @@ public class Watermark extends Module {
         if (x < 4.0F) x = 4.0F;
         if (y < 4.0F) y = 4.0F;
 
-        // ── Colors ──
         int borderCol = new Color(tc.getRed(), tc.getGreen(), tc.getBlue(), 35).getRGB();
         int bg = new Color(10, 10, 16, 180).getRGB();
         int shadow = new Color(0, 0, 0, 55).getRGB();
 
         GlStateManager.pushMatrix();
         GlStateManager.scale(uiScale, uiScale, 1.0F);
-
-        // ── Draw card: shadow → border → bg ──
-        // Each drawRoundedRectWithGl manages its own GL state
         RenderUtil.drawRoundedRectWithGl(
                 x + 1.0F, y + 2.0F,
                 x + cardW + 1.0F, y + cardH + 2.0F,
@@ -142,21 +138,15 @@ public class Watermark extends Module {
                 x, y,
                 x + cardW, y + cardH,
                 radius, bg);
-
-        // ── Draw text ──
         GlStateManager.disableDepth();
         GlStateManager.enableBlend();
         GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
         float textX = x + (cardW - contentW) / 2.0F;
         float baseY = y + (cardH - textH) / 2.0F + 1.0F;
-
-        // Current text: slides up & fades out
         float curOffY = -5.0F * anim;
         int curAlpha = (int) ((1.0F - anim) * 245.0F);
         drawPhaseText(curText, textX, baseY + curOffY, textScale, curAlpha);
-
-        // Next text: slides up from below & fades in
         if (anim > 0.005F) {
             float nextOffY = 8.0F - 8.0F * anim;
             int nextAlpha = (int) (anim * 245.0F);

@@ -35,8 +35,10 @@ import java.util.Random;
 public class NoSlow extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
     public final ModeProperty swordMode = new ModeProperty("Sword Mode", 1, new String[]{"None", "Vanilla", "BlinkSemi","Prediction","PredictionSemi"});
-    public final IntProperty cancelTick = new IntProperty("Cancel Tick", 1, 0, 2, () -> swordMode.getValue() == 4);
-    public final IntProperty cancelTick2 = new IntProperty("Cancel Tick 2", 1, 0, 2, () -> swordMode.getValue() == 4);
+    public final BooleanProperty tick0 = new BooleanProperty("Tick 0", true, () -> swordMode.getValue() == 4);
+    public final BooleanProperty tick1 = new BooleanProperty("Tick 1", true, () -> swordMode.getValue() == 4);
+    public final BooleanProperty tick2 = new BooleanProperty("Tick 2", false, () -> swordMode.getValue() == 4);
+    public final BooleanProperty tick3 = new BooleanProperty("Tick 3", false, () -> swordMode.getValue() == 4);
     public final BooleanProperty slowOnRelease = new BooleanProperty("SlowOnRelease",true,() -> this.swordMode.getValue() == 3);
     public final IntProperty swapDelay = new IntProperty("Slow Delay", 0, 0, 3, () -> swordMode.getValue() == 3);
     public final PercentProperty swordMotion = new PercentProperty("Sword Motion", 100, () -> this.swordMode.getValue() != 0);
@@ -93,7 +95,11 @@ public class NoSlow extends Module {
             }
         } else if (this.swordMode.getValue() == 4 && isSwordActive()) {
             KillAura killAura = (KillAura) Leader.moduleManager.getModule(KillAura.class);
-            return killAura.isEnabled() && killAura.shouldAutoBlock() && (killAura.blockTick == cancelTick.getValue() || killAura.blockTick == cancelTick2.getValue());
+            return killAura.isEnabled() && killAura.shouldAutoBlock()
+                && ((tick0.getValue() && killAura.blockTick == 0)
+                    || (tick1.getValue() && killAura.blockTick == 1)
+                    || (tick2.getValue() && killAura.blockTick == 2)
+                    || (tick3.getValue() && killAura.blockTick == 3));
         }
         return false;
     }

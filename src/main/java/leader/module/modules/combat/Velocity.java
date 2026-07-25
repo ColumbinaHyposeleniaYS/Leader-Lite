@@ -202,7 +202,7 @@ public class Velocity extends Module {
                     double deltaZ = -this.knockbackZ;
                     this.targetRotation = RotationUtil.getRotationsTo(deltaX, 0, deltaZ, event.getYaw(), event.getPitch());
                 }
-                if (this.targetRotation != null) {
+                if (this.targetRotation != null && !Leader.moduleManager.getModule(Scaffold.class).isEnabled()) {
                     event.setRotation(this.targetRotation[0], this.targetRotation[1], 2);
                     event.setPervRotation(this.targetRotation[0], 2);
                 }
@@ -263,7 +263,16 @@ public class Velocity extends Module {
                                 if (mc.thePlayer.isSprinting() || !this.onlySprinting.getValue()) {
                                     KillAura killAura = (KillAura) Leader.moduleManager.getModule(KillAura.class);
                                     if (killAura.getTarget() != null) {
-                                        if (!reduceWhenCanAttack.getValue() || (killAura.blockTick == 0 && killAura.autoBlock.getValue() == 2) || (killAura.autoBlock.getValue() == 6 && killAura.blockTick == killAura.attackTick.getValue()) || (killAura.autoBlock.getValue() != 6 && killAura.autoBlock.getValue() != 2) || (killAura.autoBlock.getValue() == 5 && killAura.blockTick == 0)) {
+                                        if (!reduceWhenCanAttack.getValue()
+                                                || killAura.autoBlock.getValue() == 0
+                                                || killAura.autoBlock.getValue() == 1
+                                                || killAura.autoBlock.getValue() == 8
+                                                || (killAura.autoBlock.getValue() == 2 && killAura.blockTick == 0)
+                                                || (killAura.autoBlock.getValue() == 3 && killAura.blockTick == 0)
+                                                || (killAura.autoBlock.getValue() == 4 && killAura.blockTick == killAura.attackTick.getValue())
+                                                || (killAura.autoBlock.getValue() == 5 && (killAura.blockTick == 0 || killAura.blockTick == 2))
+                                                || (killAura.autoBlock.getValue() == 6 && (killAura.blockTick == 0 || killAura.blockTick == 2))
+                                                || (killAura.autoBlock.getValue() == 7 && killAura.blockTick == 0)) {
                                             EventManager.call(new AttackEvent(killAura.getTarget()));
                                             mc.getNetHandler().addToSendQueue(new C0APacketAnimation());
                                             if (killAura.getTarget() != mc.thePlayer) {
@@ -298,7 +307,27 @@ public class Velocity extends Module {
                 KillAura killAura = (KillAura)Leader.moduleManager.getModule(KillAura.class);
                 if (delayFlag && ((delay.getValue()
                         && (isInLiquidOrWeb() || Leader.delayManager.getDelay() >= (long) delayTicks.getValue() && !airBuffer.getValue()) || (mc.thePlayer.onGround && !groundDelay.getValue() && !airBuffer.getValue()))
-                        || (airBuffer.getValue() && mc.thePlayer.onGround && delayFlag))  || (reduceMode.getValue() == 1 && killAura.autoBlock.getValue() == 2 && killAura.blockTick == 0 && killAura.shouldAutoBlock()  && reduce.getValue()) || (reduceMode.getValue() == 2 && killAura.autoBlock.getValue() == 2 && killAura.blockTick == 2 && killAura.shouldAutoBlock()) && reduce.getValue()) {
+                        || (airBuffer.getValue() && mc.thePlayer.onGround && delayFlag)) || (reduceMode.getValue() == 1
+                        && (killAura.autoBlock.getValue() == 0
+                            || killAura.autoBlock.getValue() == 1
+                            || killAura.autoBlock.getValue() == 8
+                            || (killAura.autoBlock.getValue() == 2 && killAura.blockTick == 0)
+                            || (killAura.autoBlock.getValue() == 3 && killAura.blockTick == 0)
+                            || (killAura.autoBlock.getValue() == 4 && killAura.blockTick == killAura.attackTick.getValue() % Math.max(1, killAura.maxTick.getValue() - 1))
+                            || (killAura.autoBlock.getValue() == 5 && (killAura.blockTick == 0 || killAura.blockTick == 2))
+                            || (killAura.autoBlock.getValue() == 6 && (killAura.blockTick == 0 || killAura.blockTick == 2))
+                            || (killAura.autoBlock.getValue() == 7 && killAura.blockTick == 0))
+                        && killAura.shouldAutoBlock() && reduce.getValue()) || (reduceMode.getValue() == 2
+                        && (killAura.autoBlock.getValue() == 0
+                            || killAura.autoBlock.getValue() == 1
+                            || killAura.autoBlock.getValue() == 8
+                            || (killAura.autoBlock.getValue() == 2 && killAura.blockTick == 2)
+                            || (killAura.autoBlock.getValue() == 3 && killAura.blockTick == 2)
+                            || (killAura.autoBlock.getValue() == 4 && killAura.blockTick == (killAura.attackTick.getValue() - 2 + killAura.maxTick.getValue() - 1) % Math.max(1, killAura.maxTick.getValue() - 1))
+                            || (killAura.autoBlock.getValue() == 5 && (killAura.blockTick == 3 || killAura.blockTick == 1))
+                            || (killAura.autoBlock.getValue() == 6 && killAura.blockTick == 1)
+                            || (killAura.autoBlock.getValue() == 7 && killAura.blockTick == 1))
+                        && killAura.shouldAutoBlock() && reduce.getValue())) {
                     ticksSinceVelocity = 0;
                     if (killAura.getTarget() != null) {
                         if (extraAttack.getValue() && reduce.getValue() && reduceMode.getValue() != 0) {
