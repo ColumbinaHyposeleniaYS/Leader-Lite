@@ -179,11 +179,12 @@ public class PlayerUtil {
                                     MathHelper.cos(mc.thePlayer.rotationYaw * (float) Math.PI / 180.0F) * (float) knockbackLevel * 0.5F
                             );
                             KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.modules.get(KeepSprint.class);
-                            if (keepSprint.isEnabled()
-                                    && (!keepSprint.groundOnly.getValue() || mc.thePlayer.onGround)
-                                    && (!keepSprint.reachOnly.getValue() || !(RotationUtil.distanceToEntity(target) <= 3.0))) {
+                            if (keepSprint.isEnabled() && keepSprint.shouldKeepSprint()) {
                                 mc.thePlayer.motionX *= 0.6 + 0.4 * (1.0 - keepSprint.slowdown.getValue().doubleValue() / 100.0);
                                 mc.thePlayer.motionZ *= 0.6 + 0.4 * (1.0 - keepSprint.slowdown.getValue().doubleValue() / 100.0);
+                                if (keepSprint.mode.getValue() == 1){
+                                    mc.thePlayer.setSprinting(false);
+                                }
                             } else {
                                 mc.thePlayer.motionX *= 0.6;
                                 mc.thePlayer.motionZ *= 0.6;

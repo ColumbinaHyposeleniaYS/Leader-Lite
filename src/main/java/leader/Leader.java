@@ -82,7 +82,9 @@ public class Leader {
         moduleManager.modules.put(BlinkSettings.class, new BlinkSettings());
         moduleManager.modules.put(Chams.class, new Chams());
         moduleManager.modules.put(ChestESP.class, new ChestESP());
+        moduleManager.modules.put(ChestAura.class, new ChestAura());
         moduleManager.modules.put(ChestStealer.class, new ChestStealer());
+        moduleManager.modules.put(Disabler.class, new Disabler());
         moduleManager.modules.put(Eagle.class, new Eagle());
         moduleManager.modules.put(ESP.class, new ESP());
         moduleManager.modules.put(FastPlace.class, new FastPlace());
@@ -91,6 +93,7 @@ public class Leader {
         moduleManager.modules.put(FontManager.class, new FontManager());
         moduleManager.modules.put(FullBright.class, new FullBright());
         moduleManager.modules.put(GhostHand.class, new GhostHand());
+        moduleManager.modules.put(GifDisplay.class, new GifDisplay());
         moduleManager.modules.put(GuiModule.class, new GuiModule());
         moduleManager.modules.put(HUD.class, new HUD());
         moduleManager.modules.put(MoreKB.class, new MoreKB());

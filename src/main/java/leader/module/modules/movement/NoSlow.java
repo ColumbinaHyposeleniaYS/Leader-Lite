@@ -24,13 +24,12 @@ import leader.event.types.Priority;
 import leader.events.*;
 import leader.module.Module;
 import leader.module.modules.combat.KillAura;
+import leader.module.modules.misc.Disabler;
 import leader.property.properties.BooleanProperty;
 import leader.property.properties.IntProperty;
 import leader.property.properties.ModeProperty;
 import leader.property.properties.PercentProperty;
 import leader.util.*;
-
-import java.util.Random;
 
 public class NoSlow extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
@@ -130,13 +129,8 @@ public class NoSlow extends Module {
                     delay--;
                     if (delay < 0) {
                         if (!this.slowOnRelease.getValue() || killAura.blockTick != 0) {
-                            int randomSlot = new Random().nextInt(9);
-                            while (randomSlot == mc.thePlayer.inventory.currentItem) {
-                                randomSlot = new Random().nextInt(9);
-                            }
                             int handle = mc.thePlayer.inventory.currentItem;
-                            PacketUtil.sendPacket(new C09PacketHeldItemChange(handle % 8 + 1));
-                            PacketUtil.sendPacket(new C09PacketHeldItemChange(handle % 7 + 2));
+                            PacketUtil.sendPacket(new C09PacketHeldItemChange(Disabler.getAltSlot(handle)));
                             PacketUtil.sendPacket(new C09PacketHeldItemChange(handle));
                         }
                         delay = swapDelay.getValue();
@@ -146,10 +140,7 @@ public class NoSlow extends Module {
             if (this.swordMode.getValue() == 2) {
                 if (event.getType() == EventType.PRE) {
                     if (blinkDelay == 2) {
-                        int randomSlot = new Random().nextInt(9);
-                        while (randomSlot == mc.thePlayer.inventory.currentItem) {
-                            randomSlot = new Random().nextInt(9);
-                        }
+                        int randomSlot = Disabler.getSwapSlot();
                         PacketUtil.sendPacket(new C09PacketHeldItemChange(randomSlot));
                         PacketUtil.sendPacket(new C09PacketHeldItemChange(mc.thePlayer.inventory.currentItem));
                         PacketUtil.sendPacket(new C07PacketPlayerDigging(C07PacketPlayerDigging.Action.RELEASE_USE_ITEM, BlockPos.ORIGIN, EnumFacing.DOWN));
