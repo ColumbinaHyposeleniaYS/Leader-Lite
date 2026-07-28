@@ -35,7 +35,7 @@ public class Potion extends Module {
     private List<PotionEffect> currentEffects = new ArrayList<>();
 
     public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"RIGHT", "LEFT"});
-    public final ModeProperty displayMode = new ModeProperty("display-mode", 0, new String[]{"Bar", "Circle"});
+    public final ModeProperty displayMode = new ModeProperty("display-mode", 0, new String[]{"Bar", "Circle", "Modern"});
     public final IntProperty offsetX = new IntProperty("offset-x", 2, 0, 255);
     public final IntProperty offsetY = new IntProperty("offset-y", 2, 0, 255);
     public final FloatProperty scale = new FloatProperty("scale", 1.0F, 0.5F, 1.5F);
@@ -94,14 +94,16 @@ public class Potion extends Module {
                 .collect(Collectors.toList());
         updateMaxDurations();
         GlStateManager.pushMatrix();
-        GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 0.0F);
+        GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
 
         int index = 0;
         boolean doBlur = this.blur.getValue();
         float invScale = 1.0F / this.scale.getValue();
         boolean isRight = this.mode.getValue() == 0;
 
-        if (this.displayMode.getValue() == 1) {
+        if (this.displayMode.getValue() == 2) {
+            renderModern(index, doBlur, invScale, isRight);
+        } else if (this.displayMode.getValue() == 1) {
             renderCircle(index, doBlur, invScale, isRight);
         } else {
             renderBar(index, doBlur, invScale, isRight);
@@ -282,6 +284,87 @@ public class Potion extends Module {
             GlStateManager.enableDepth();
             GlStateManager.disableBlend();
 
+            index++;
+        }
+    }
+
+    private void renderModern(int index, boolean doBlur, float invScale, boolean isRight) {
+        float screenWidth = new ScaledResolution(mc).getScaledWidth();
+        float cardWidth = 148.0F;
+        float cardHeight = 32.0F;
+        float gap = 4.0F;
+        float radius = 6.0F;
+        float textScale = this.fontScale.getValue();
+        float iconSize = 20.0F;
+        float offX = this.offsetX.getValue() + 6.0F;
+        float offY = this.offsetY.getValue() + 6.0F;
+        float baseX = isRight ? (screenWidth - cardWidth - offX) * invScale : offX * invScale;
+        float baseY = offY * invScale;
+        float step = (cardHeight + gap) * invScale;
+
+        for (PotionEffect effect : currentEffects) {
+            net.minecraft.potion.Potion potion = net.minecraft.potion.Potion.potionTypes[effect.getPotionID()];
+            int id = effect.getPotionID();
+            int maxDur = potionMaxDurations.getOrDefault(id, Math.max(effect.getDuration(), 1));
+            float ratio = Math.min((float) effect.getDuration() / (float) maxDur, 1.0F);
+            int potionColor = potion.getLiquidColor();
+            Color themeColor = new Color((potionColor & 0x00FFFFFF) | 0xFF000000, true);
+            String name = getPotionName(effect);
+            String durationStr = net.minecraft.potion.Potion.getDurationString(effect);
+
+            float x = baseX;
+            float y = baseY + index * step;
+
+            if (doBlur) {
+                final float bx = x;
+                final float by = y;
+                ShaderElement.addBlurTask(() -> RenderUtil.drawRoundedRectWithGl(bx, by, bx + cardWidth, by + cardHeight, radius, -1));
+            }
+
+            int bgColor = new Color(11, 13, 19, 188).getRGB();
+            int layerColor = new Color(255, 255, 255, 18).getRGB();
+            int accent = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), 230).getRGB();
+            int accentSoft = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), 55).getRGB();
+            int track = new Color(255, 255, 255, 34).getRGB();
+
+            RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 2.0F, x + cardWidth + 1.0F, y + cardHeight + 2.0F, radius, new Color(0, 0, 0, 45).getRGB());
+            RenderUtil.drawRoundedRectWithGl(x, y, x + cardWidth, y + cardHeight, radius, bgColor);
+            RenderUtil.drawRoundedRectWithGl(x + 4.0F, y + 4.0F, x + cardWidth - 4.0F, y + cardHeight - 4.0F, 4.0F, layerColor);
+            RenderUtil.drawRoundedRectWithGl(x, y, x + 4.0F, y + cardHeight, 2.0F, accent);
+            RenderUtil.drawRoundedRectWithGl(x + cardWidth - 44.0F, y + 7.0F, x + cardWidth - 8.0F, y + 20.0F, 5.0F, accentSoft);
+            RenderUtil.drawLine(x + 8.0F, y + cardHeight - 5.0F, x + cardWidth - 8.0F, y + cardHeight - 5.0F, 2.0F, track);
+            RenderUtil.drawLine(x + 8.0F, y + cardHeight - 5.0F, x + 8.0F + (cardWidth - 16.0F) * ratio, y + cardHeight - 5.0F, 2.0F, accent);
+
+            if (potion.hasStatusIcon()) {
+                GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+                mc.getTextureManager().bindTexture(new ResourceLocation("textures/gui/container/inventory.png"));
+                int iconIndex = potion.getStatusIconIndex();
+                float u = iconIndex % 8 * 18;
+                float v = 198 + iconIndex / 8 * 18;
+                GlStateManager.enableBlend();
+                GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+                Gui.drawScaledCustomSizeModalRect((int) (x + 8.0F), (int) (y + 6.0F), u, v, 18, 18, (int) iconSize, (int) iconSize, 256.0F, 256.0F);
+                GlStateManager.disableBlend();
+            }
+
+            GlStateManager.disableDepth();
+            GlStateManager.enableBlend();
+            GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(x + 34.0F, y + 6.0F, 0.0F);
+            GlStateManager.scale(textScale, textScale, 1.0F);
+            FontManager.drawString(name, 0.0F, 0.0F, -1, false);
+            GlStateManager.popMatrix();
+
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(x + cardWidth - 39.0F, y + 9.0F, 0.0F);
+            GlStateManager.scale(Math.max(0.75F, textScale * 0.82F), Math.max(0.75F, textScale * 0.82F), 1.0F);
+            FontManager.drawString(durationStr, 0.0F, 0.0F, accent, false);
+            GlStateManager.popMatrix();
+
+            GlStateManager.enableDepth();
+            GlStateManager.disableBlend();
             index++;
         }
     }

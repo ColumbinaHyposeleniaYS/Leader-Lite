@@ -47,7 +47,7 @@ public class TargetHUD extends Module {
     private float oldHealth = 0.0F;
     private float newHealth = 0.0F;
     private float maxHealth = 0.0F;
-    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"DEFAULT", "TRIANGLE", "BACKGROUND"});
+    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"DEFAULT", "TRIANGLE", "BACKGROUND", "MODERN"});
     public final ModeProperty color = new ModeProperty("color", 0, new String[]{"DEFAULT", "HUD"});
     public final ModeProperty posX = new ModeProperty("position-x", 1, new String[]{"LEFT", "MIDDLE", "RIGHT"});
     public final ModeProperty posY = new ModeProperty("position-y", 1, new String[]{"TOP", "MIDDLE", "BOTTOM"});
@@ -65,7 +65,7 @@ public class TargetHUD extends Module {
     public final BooleanProperty shadow = new BooleanProperty("shadow", false);
     public final BooleanProperty kaOnly = new BooleanProperty("ka-only", true);
     public final BooleanProperty chatPreview = new BooleanProperty("chat-preview", false);
-    public final BooleanProperty blur = new BooleanProperty("blur", false, () -> this.mode.getValue() == 2);
+    public final BooleanProperty blur = new BooleanProperty("blur", false, () -> this.mode.getValue() == 2 || this.mode.getValue() == 3);
 
     private EntityLivingBase resolveTarget() {
         KillAura killAura = (KillAura) Leader.moduleManager.modules.get(KillAura.class);
@@ -224,7 +224,12 @@ public class TargetHUD extends Module {
                         String.format("&r%s&r", heal == health ? "0.0" : diffFormat.format(health - heal))
                 );
                 float healthDiffWidth = this.getTextWidth(healthDiffText);
-                if (this.mode.getValue() == 2) {
+                if (this.mode.getValue() == 3) {
+                    renderModern(scaledResolution, targetNameText, healthText, statusText, healthDiffText,
+                            targetNameWidth, healthTextWidth, statusTextWidth, healthDiffWidth,
+                            healthRatio, targetColor, healthBarColor, healthDeltaColor,
+                            heal, health, abs);
+                } else if (this.mode.getValue() == 2) {
                     renderBackground(scaledResolution, targetNameText, healthText,
                             targetNameWidth, healthTextWidth,
                             healthRatio, targetColor, healthBarColor,
@@ -262,7 +267,7 @@ public class TargetHUD extends Module {
                         posY += (float) scaledResolution.getScaledHeight() / this.scale.getValue() - cardHeight;
                 }
                 GlStateManager.pushMatrix();
-                GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 0.0F);
+                GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
                 GlStateManager.translate(posX, posY, -450.0F);
                 RenderUtil.enableRenderState();
                 RenderUtil.drawRect(0.0F, 0.0F, barTotalWidth, cardHeight, this.getBackgroundColor());
@@ -336,7 +341,7 @@ public class TargetHUD extends Module {
             final float sc = this.scale.getValue();
             ShaderElement.addBlurTask(() -> {
                 GlStateManager.pushMatrix();
-                GlStateManager.scale(sc, sc, 0.0F);
+                GlStateManager.scale(sc, sc, 1.0F);
                 GlStateManager.translate(bx, by, -450.0F);
                 RenderUtil.enableRenderState();
                 RenderUtil.drawRect(0.0F, 0.0F, bw, bh, -1);
@@ -346,7 +351,7 @@ public class TargetHUD extends Module {
         }
 
         GlStateManager.pushMatrix();
-        GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 0.0F);
+        GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
         GlStateManager.translate(posX, posY, -450.0F);
 
         RenderUtil.enableRenderState();
@@ -405,6 +410,97 @@ public class TargetHUD extends Module {
         GlStateManager.popMatrix();
     }
 
+    private void renderModern(ScaledResolution scaledResolution,
+                              String targetNameText, String healthText, String statusText, String healthDiffText,
+                              float targetNameWidth, float healthTextWidth, float statusTextWidth, float healthDiffWidth,
+                              float healthRatio, Color targetColor, Color healthBarColor, Color healthDeltaColor,
+                              float heal, float playerHealth, float abs) {
+        final float cardWidth = Math.max(154.0F, Math.max(targetNameWidth, healthTextWidth) + 72.0F);
+        final float cardHeight = 46.0F;
+        final float radius = 7.0F;
+        final float headSize = 32.0F;
+        final boolean hasHead = this.head.getValue() && this.headTexture != null;
+
+        float posX = this.offX.getValue().floatValue() / this.scale.getValue();
+        switch (this.posX.getValue()) {
+            case 1:
+                posX += (float) scaledResolution.getScaledWidth() / this.scale.getValue() / 2.0F - cardWidth / 2.0F;
+                break;
+            case 2:
+                posX *= -1.0F;
+                posX += (float) scaledResolution.getScaledWidth() / this.scale.getValue() - cardWidth;
+                break;
+        }
+        float posY = this.offY.getValue().floatValue() / this.scale.getValue();
+        switch (this.posY.getValue()) {
+            case 1:
+                posY += (float) scaledResolution.getScaledHeight() / this.scale.getValue() / 2.0F - cardHeight / 2.0F;
+                break;
+            case 2:
+                posY *= -1.0F;
+                posY += (float) scaledResolution.getScaledHeight() / this.scale.getValue() - cardHeight;
+                break;
+        }
+
+        if (this.blur.getValue()) {
+            final float bx = posX;
+            final float by = posY;
+            final float bw = cardWidth;
+            final float bh = cardHeight;
+            final float sc = this.scale.getValue();
+            ShaderElement.addBlurTask(() -> {
+                GlStateManager.pushMatrix();
+                GlStateManager.scale(sc, sc, 1.0F);
+                GlStateManager.translate(bx, by, -450.0F);
+                RenderUtil.drawRoundedRectWithGl(0.0F, 0.0F, bw, bh, radius, -1);
+                GlStateManager.popMatrix();
+            });
+        }
+
+        GlStateManager.pushMatrix();
+        GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
+        GlStateManager.translate(posX, posY, -450.0F);
+
+        int shadowColor = new Color(0, 0, 0, this.shadow.getValue() ? 70 : 36).getRGB();
+        int bgColor = new Color(11, 13, 19, Math.max(150, this.getBackgroundAlpha())).getRGB();
+        int panelColor = new Color(255, 255, 255, 18).getRGB();
+        int accentSoft = new Color(targetColor.getRed(), targetColor.getGreen(), targetColor.getBlue(), 58).getRGB();
+        int trackColor = new Color(255, 255, 255, 36).getRGB();
+        int barColor = new Color(healthBarColor.getRed(), healthBarColor.getGreen(), healthBarColor.getBlue(), 230).getRGB();
+
+        RenderUtil.drawRoundedRectWithGl(2.0F, 3.0F, cardWidth + 2.0F, cardHeight + 3.0F, radius + 1.0F, shadowColor);
+        RenderUtil.drawRoundedRectWithGl(0.0F, 0.0F, cardWidth, cardHeight, radius, bgColor);
+        RenderUtil.drawRoundedRectWithGl(0.0F, 0.0F, 4.0F, cardHeight, 2.0F, targetColor.getRGB());
+        RenderUtil.drawRoundedRectWithGl(6.0F, 5.0F, cardWidth - 6.0F, cardHeight - 5.0F, 5.0F, panelColor);
+        RenderUtil.drawLine(8.0F, cardHeight - 7.0F, cardWidth - 8.0F, cardHeight - 7.0F, 3.0F, trackColor);
+        RenderUtil.drawLine(8.0F, cardHeight - 7.0F, 8.0F + (cardWidth - 16.0F) * healthRatio, cardHeight - 7.0F, 3.0F, barColor);
+        RenderUtil.drawRoundedRectWithGl(cardWidth - 30.0F, 7.0F, cardWidth - 8.0F, 20.0F, 4.0F, accentSoft);
+
+        GlStateManager.disableDepth();
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+        float textX = hasHead ? 46.0F : 12.0F;
+        this.drawText(targetNameText, textX, 8.0F, -1);
+        this.drawText(healthText, textX, 23.0F, new Color(230, 233, 240, 245).getRGB());
+        if (this.indicator.getValue()) {
+            this.drawText(statusText, cardWidth - 23.0F - statusTextWidth / 2.0F, 9.0F, healthDeltaColor.getRGB());
+            this.drawText(healthDiffText, cardWidth - 10.0F - healthDiffWidth, 23.0F, ColorUtil.darker(healthDeltaColor, 0.8F).getRGB());
+        }
+
+        if (hasHead) {
+            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+            mc.getTextureManager().bindTexture(this.headTexture);
+            Gui.drawScaledCustomSizeModalRect(10, 7, 8.0F, 8.0F, 8, 8, (int) headSize, (int) headSize, 64.0F, 64.0F);
+            Gui.drawScaledCustomSizeModalRect(10, 7, 40.0F, 8.0F, 8, 8, (int) headSize, (int) headSize, 64.0F, 64.0F);
+            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        }
+
+        GlStateManager.disableBlend();
+        GlStateManager.enableDepth();
+        GlStateManager.popMatrix();
+    }
+
     private void renderTriangle(ScaledResolution scaledResolution,
                                 String targetNameText, String healthText, String statusText, String healthDiffText,
                                 float targetNameWidth, float healthTextWidth, float statusTextWidth, float healthDiffWidth,
@@ -444,7 +540,7 @@ public class TargetHUD extends Module {
         final float baseY = triPosY + height;
 
         GlStateManager.pushMatrix();
-        GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 0.0F);
+        GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
         GlStateManager.translate(0.0F, 0.0F, -450.0F);
 
         if (this.shadow.getValue()) {

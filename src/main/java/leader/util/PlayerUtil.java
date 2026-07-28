@@ -1,6 +1,7 @@
 package leader.util;
 
 import leader.Leader;
+import leader.module.modules.misc.Disabler;
 import leader.module.modules.player.KeepSprint;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
@@ -11,6 +12,7 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.EnumCreatureAttribute;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.network.play.client.C09PacketHeldItemChange;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
@@ -21,6 +23,8 @@ import net.minecraft.util.BlockPos;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.MathHelper;
 import net.minecraftforge.common.ForgeHooks;
+
+import static leader.config.Config.mc;
 
 public class PlayerUtil {
     private static final Minecraft mc = Minecraft.getMinecraft();
@@ -182,9 +186,6 @@ public class PlayerUtil {
                             if (keepSprint.isEnabled() && keepSprint.shouldKeepSprint()) {
                                 mc.thePlayer.motionX *= 0.6 + 0.4 * (1.0 - keepSprint.slowdown.getValue().doubleValue() / 100.0);
                                 mc.thePlayer.motionZ *= 0.6 + 0.4 * (1.0 - keepSprint.slowdown.getValue().doubleValue() / 100.0);
-                                if (keepSprint.mode.getValue() == 1){
-                                    mc.thePlayer.setSprinting(false);
-                                }
                             } else {
                                 mc.thePlayer.motionX *= 0.6;
                                 mc.thePlayer.motionZ *= 0.6;

@@ -6,6 +6,7 @@ import leader.events.Render2DEvent;
 import leader.module.Module;
 import leader.property.properties.FloatProperty;
 import leader.property.properties.IntProperty;
+import leader.property.properties.ModeProperty;
 import leader.util.RenderUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
@@ -25,6 +26,7 @@ public class Watermark extends Module {
     private int displayFps = 0;
     private int frameCount = 0;
 
+    public final ModeProperty mode = new ModeProperty("mode", 1, new String[]{"CLASSIC", "MODERN"});
     public final FloatProperty scale = new FloatProperty("scale", 1.0F, 0.5F, 2.0F);
     public final FloatProperty fontScale = new FloatProperty("font-scale", 1.0F, 0.7F, 1.5F);
     public final IntProperty offX = new IntProperty("offset-x", 4, 0, 500);
@@ -91,6 +93,11 @@ public class Watermark extends Module {
         HUD hud = getHud();
         Color tc = hud != null ? hud.getColor(now) : new Color(0, 190, 255);
 
+        if (this.mode.getValue() == 0) {
+            renderClassic(curText, nextText, anim, tc);
+            return;
+        }
+
         float uiScale = this.scale.getValue();
         float textScale = this.fontScale.getValue();
 
@@ -153,6 +160,32 @@ public class Watermark extends Module {
             drawPhaseText(nextText, textX, baseY + nextOffY, textScale, nextAlpha);
         }
 
+        GlStateManager.enableDepth();
+        GlStateManager.disableBlend();
+        GlStateManager.popMatrix();
+    }
+
+    private void renderClassic(String curText, String nextText, float anim, Color themeColor) {
+        float uiScale = this.scale.getValue();
+        float textScale = this.fontScale.getValue();
+        float curW = FontManager.getStringWidth(curText) * textScale;
+        float nextW = FontManager.getStringWidth(nextText) * textScale;
+        float contentW = curW + (nextW - curW) * anim;
+        float textH = FontManager.getFontHeight() * textScale;
+        float x = this.offX.getValue();
+        float y = this.offY.getValue();
+        int accent = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), 245).getRGB();
+
+        GlStateManager.pushMatrix();
+        GlStateManager.scale(uiScale, uiScale, 1.0F);
+        GlStateManager.disableDepth();
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        RenderUtil.drawLine(x, y + textH + 3.0F, x + contentW, y + textH + 3.0F, 1.5F, accent);
+        drawPhaseText(curText, x, y, textScale, (int) ((1.0F - anim) * 245.0F));
+        if (anim > 0.005F) {
+            drawPhaseText(nextText, x, y + 7.0F - 7.0F * anim, textScale, (int) (anim * 245.0F));
+        }
         GlStateManager.enableDepth();
         GlStateManager.disableBlend();
         GlStateManager.popMatrix();

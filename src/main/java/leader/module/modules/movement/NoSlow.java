@@ -131,6 +131,7 @@ public class NoSlow extends Module {
                         if (!this.slowOnRelease.getValue() || killAura.blockTick != 0) {
                             int handle = mc.thePlayer.inventory.currentItem;
                             PacketUtil.sendPacket(new C09PacketHeldItemChange(Disabler.getAltSlot(handle)));
+                            PacketUtil.sendPacket(new C09PacketHeldItemChange(handle % 7 + 2));
                             PacketUtil.sendPacket(new C09PacketHeldItemChange(handle));
                         }
                         delay = swapDelay.getValue();

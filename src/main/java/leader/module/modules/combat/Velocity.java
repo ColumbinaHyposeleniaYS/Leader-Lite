@@ -314,8 +314,8 @@ public class Velocity extends Module {
                             || (killAura.autoBlock.getValue() == 2 && killAura.blockTick == 0)
                             || (killAura.autoBlock.getValue() == 3 && killAura.blockTick == 0)
                             || (killAura.autoBlock.getValue() == 4 && killAura.blockTick == killAura.attackTick.getValue() % Math.max(1, killAura.maxTick.getValue() - 1))
-                            || (killAura.autoBlock.getValue() == 5 && (killAura.blockTick == 0 || killAura.blockTick == 2))
-                            || (killAura.autoBlock.getValue() == 6 && (killAura.blockTick == 0 || killAura.blockTick == 2))
+                            || (killAura.autoBlock.getValue() == 5 && killAura.blockTick == 0)
+                            || (killAura.autoBlock.getValue() == 6 && killAura.blockTick == 0)
                             || (killAura.autoBlock.getValue() == 7 && killAura.blockTick == 0))
                         && killAura.shouldAutoBlock() && reduce.getValue()) || (reduceMode.getValue() == 2
                         && (killAura.autoBlock.getValue() == 0
@@ -324,8 +324,8 @@ public class Velocity extends Module {
                             || (killAura.autoBlock.getValue() == 2 && killAura.blockTick == 2)
                             || (killAura.autoBlock.getValue() == 3 && killAura.blockTick == 2)
                             || (killAura.autoBlock.getValue() == 4 && killAura.blockTick == (killAura.attackTick.getValue() - 2 + killAura.maxTick.getValue() - 1) % Math.max(1, killAura.maxTick.getValue() - 1))
-                            || (killAura.autoBlock.getValue() == 5 && (killAura.blockTick == 3 || killAura.blockTick == 1))
-                            || (killAura.autoBlock.getValue() == 6 && killAura.blockTick == 1)
+                            || (killAura.autoBlock.getValue() == 5 && killAura.blockTick == 1)
+                            || (killAura.autoBlock.getValue() == 6 && killAura.blockTick == 2)
                             || (killAura.autoBlock.getValue() == 7 && killAura.blockTick == 1))
                         && killAura.shouldAutoBlock() && reduce.getValue())) {
                     ticksSinceVelocity = 0;
