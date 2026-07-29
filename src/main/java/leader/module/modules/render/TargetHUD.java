@@ -33,6 +33,9 @@ import org.lwjgl.opengl.GL11;
 import java.awt.*;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 
 public class TargetHUD extends Module {
@@ -47,6 +50,8 @@ public class TargetHUD extends Module {
     private float oldHealth = 0.0F;
     private float newHealth = 0.0F;
     private float maxHealth = 0.0F;
+    private float lastObservedHealth = Float.NaN;
+    private final List<HitParticle> hitParticles = new ArrayList<>();
     public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"DEFAULT", "TRIANGLE", "BACKGROUND", "MODERN"});
     public final ModeProperty color = new ModeProperty("color", 0, new String[]{"DEFAULT", "HUD"});
     public final ModeProperty posX = new ModeProperty("position-x", 1, new String[]{"LEFT", "MIDDLE", "RIGHT"});
@@ -192,12 +197,24 @@ public class TargetHUD extends Module {
                     this.animTimer.setTime();
                     this.oldHealth = heal;
                     this.newHealth = heal;
+                    this.lastObservedHealth = heal;
+                    this.hitParticles.clear();
                 }
+                this.maxHealth = Math.max(this.target.getMaxHealth() / 2.0F, 1.0F);
+                if (!Float.isNaN(this.lastObservedHealth)
+                        && heal < this.lastObservedHealth - 0.001F
+                        && this.mode.getValue() == 3) {
+                    this.spawnHitParticles();
+                }
+                this.lastObservedHealth = heal;
                 if (!this.animations.getValue() || this.animTimer.hasTimeElapsed(150L)) {
+                    float previousHealth = this.newHealth;
                     this.oldHealth = this.newHealth;
                     this.newHealth = heal;
-                    this.maxHealth = this.target.getMaxHealth() / 2.0F;
-                    if (this.oldHealth != this.newHealth) {
+                    if (this.newHealth < previousHealth - 0.001F && this.mode.getValue() == 3) {
+                        this.spawnHitParticles();
+                    }
+                    if (Math.abs(this.oldHealth - this.newHealth) > 0.001F) {
                         this.animTimer.reset();
                     }
                 }
@@ -415,11 +432,19 @@ public class TargetHUD extends Module {
                               float targetNameWidth, float healthTextWidth, float statusTextWidth, float healthDiffWidth,
                               float healthRatio, Color targetColor, Color healthBarColor, Color healthDeltaColor,
                               float heal, float playerHealth, float abs) {
-        final float cardWidth = Math.max(154.0F, Math.max(targetNameWidth, healthTextWidth) + 72.0F);
-        final float cardHeight = 46.0F;
-        final float radius = 7.0F;
-        final float headSize = 32.0F;
-        final boolean hasHead = this.head.getValue() && this.headTexture != null;
+        final float cardWidth = Math.max(220.0F, targetNameWidth + 118.0F);
+        final float cardHeight = 48.0F;
+        final float radius = 8.0F;
+        final float headSize = 30.0F;
+        final float headX = cardWidth - headSize - 10.0F;
+        final float headY = 9.0F;
+        final float barX = 12.0F;
+        final float barY = 31.0F;
+        final float barWidth = headX - barX - 10.0F;
+        final float barHeight = 4.0F;
+
+        String modernHealthText = ChatColors.formatColor(String.format("&r&f%s&r", healthFormat.format(heal)));
+        float modernHealthWidth = this.getTextWidth(modernHealthText);
 
         float posX = this.offX.getValue().floatValue() / this.scale.getValue();
         switch (this.posX.getValue()) {
@@ -442,63 +467,81 @@ public class TargetHUD extends Module {
                 break;
         }
 
-        if (this.blur.getValue()) {
-            final float bx = posX;
-            final float by = posY;
-            final float bw = cardWidth;
-            final float bh = cardHeight;
-            final float sc = this.scale.getValue();
-            ShaderElement.addBlurTask(() -> {
-                GlStateManager.pushMatrix();
-                GlStateManager.scale(sc, sc, 1.0F);
-                GlStateManager.translate(bx, by, -450.0F);
-                RenderUtil.drawRoundedRectWithGl(0.0F, 0.0F, bw, bh, radius, -1);
-                GlStateManager.popMatrix();
-            });
-        }
-
         GlStateManager.pushMatrix();
         GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
         GlStateManager.translate(posX, posY, -450.0F);
 
-        int shadowColor = new Color(0, 0, 0, this.shadow.getValue() ? 70 : 36).getRGB();
-        int bgColor = new Color(11, 13, 19, Math.max(150, this.getBackgroundAlpha())).getRGB();
-        int panelColor = new Color(255, 255, 255, 18).getRGB();
-        int accentSoft = new Color(targetColor.getRed(), targetColor.getGreen(), targetColor.getBlue(), 58).getRGB();
-        int trackColor = new Color(255, 255, 255, 36).getRGB();
-        int barColor = new Color(healthBarColor.getRed(), healthBarColor.getGreen(), healthBarColor.getBlue(), 230).getRGB();
+        float elapsedTime = (float) Math.min(Math.max(this.animTimer.getElapsedTime(), 0L), 180L);
+        float hitProgress = this.oldHealth > this.newHealth ? 1.0F - elapsedTime / 180.0F : 0.0F;
+        float shake = hitProgress > 0.0F ? (float) Math.sin(System.currentTimeMillis() * 0.08D) * 3.0F * hitProgress : 0.0F;
+        float filledWidth = Math.max(2.0F, barWidth * healthRatio);
 
-        RenderUtil.drawRoundedRectWithGl(2.0F, 3.0F, cardWidth + 2.0F, cardHeight + 3.0F, radius + 1.0F, shadowColor);
+        int bgColor = new Color(11, 13, 19, Math.max(172, this.getBackgroundAlpha())).getRGB();
+        int trackColor = new Color(255, 255, 255, 34).getRGB();
+        int fillSoftColor = new Color(healthBarColor.getRed(), healthBarColor.getGreen(), healthBarColor.getBlue(), 210).getRGB();
+
         RenderUtil.drawRoundedRectWithGl(0.0F, 0.0F, cardWidth, cardHeight, radius, bgColor);
-        RenderUtil.drawRoundedRectWithGl(0.0F, 0.0F, 4.0F, cardHeight, 2.0F, targetColor.getRGB());
-        RenderUtil.drawRoundedRectWithGl(6.0F, 5.0F, cardWidth - 6.0F, cardHeight - 5.0F, 5.0F, panelColor);
-        RenderUtil.drawLine(8.0F, cardHeight - 7.0F, cardWidth - 8.0F, cardHeight - 7.0F, 3.0F, trackColor);
-        RenderUtil.drawLine(8.0F, cardHeight - 7.0F, 8.0F + (cardWidth - 16.0F) * healthRatio, cardHeight - 7.0F, 3.0F, barColor);
-        RenderUtil.drawRoundedRectWithGl(cardWidth - 30.0F, 7.0F, cardWidth - 8.0F, 20.0F, 4.0F, accentSoft);
+        RenderUtil.drawRoundedRectWithGl(barX, barY, barX + barWidth, barY + barHeight, barHeight / 2.0F, trackColor);
+        RenderUtil.drawRoundedRectWithGl(barX, barY, barX + filledWidth, barY + barHeight, barHeight / 2.0F, fillSoftColor);
 
         GlStateManager.disableDepth();
         GlStateManager.enableBlend();
         GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-        float textX = hasHead ? 46.0F : 12.0F;
-        this.drawText(targetNameText, textX, 8.0F, -1);
-        this.drawText(healthText, textX, 23.0F, new Color(230, 233, 240, 245).getRGB());
-        if (this.indicator.getValue()) {
-            this.drawText(statusText, cardWidth - 23.0F - statusTextWidth / 2.0F, 9.0F, healthDeltaColor.getRGB());
-            this.drawText(healthDiffText, cardWidth - 10.0F - healthDiffWidth, 23.0F, ColorUtil.darker(healthDeltaColor, 0.8F).getRGB());
-        }
+        this.drawText(targetNameText, 12.0F, 9.0F, -1);
+        this.drawText(modernHealthText, barX + barWidth - modernHealthWidth, 20.0F, new Color(235, 238, 244, 245).getRGB());
 
-        if (hasHead) {
+        if (this.head.getValue() && this.headTexture != null) {
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
             mc.getTextureManager().bindTexture(this.headTexture);
-            Gui.drawScaledCustomSizeModalRect(10, 7, 8.0F, 8.0F, 8, 8, (int) headSize, (int) headSize, 64.0F, 64.0F);
-            Gui.drawScaledCustomSizeModalRect(10, 7, 40.0F, 8.0F, 8, 8, (int) headSize, (int) headSize, 64.0F, 64.0F);
+            Gui.drawScaledCustomSizeModalRect((int) (headX + shake), (int) (headY - shake * 0.4F), 8.0F, 8.0F, 8, 8, (int) headSize, (int) headSize, 64.0F, 64.0F);
+            Gui.drawScaledCustomSizeModalRect((int) (headX + shake), (int) (headY - shake * 0.4F), 40.0F, 8.0F, 8, 8, (int) headSize, (int) headSize, 64.0F, 64.0F);
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         }
+
+        // Draw particles after the textured head so the hit burst stays on top.
+        this.drawHitParticles(headX + headSize / 2.0F, headY + headSize / 2.0F, healthBarColor);
 
         GlStateManager.disableBlend();
         GlStateManager.enableDepth();
         GlStateManager.popMatrix();
+    }
+
+    private void spawnHitParticles() {
+        long now = System.currentTimeMillis();
+        for (int i = 0; i < 8; i++) {
+            double angle = Math.PI * 2.0D * i / 8.0D + Math.random() * 0.45D;
+            float speed = 0.55F + (float) Math.random() * 0.55F;
+            this.hitParticles.add(new HitParticle(
+                    (float) Math.cos(angle) * 2.0F,
+                    (float) Math.sin(angle) * 2.0F,
+                    (float) Math.cos(angle) * speed,
+                    (float) Math.sin(angle) * speed,
+                    2.0F + (float) Math.random() * 1.6F,
+                    now
+            ));
+        }
+    }
+
+    private void drawHitParticles(float centerX, float centerY, Color color) {
+        long now = System.currentTimeMillis();
+        Iterator<HitParticle> iterator = this.hitParticles.iterator();
+        while (iterator.hasNext()) {
+            HitParticle particle = iterator.next();
+            float age = now - particle.startTime;
+            float life = 520.0F;
+            if (age >= life) {
+                iterator.remove();
+                continue;
+            }
+            float progress = age / life;
+            float px = centerX + particle.x + particle.vx * progress * 18.0F;
+            float py = centerY + particle.y + particle.vy * progress * 18.0F + progress * progress * 6.0F;
+            float size = particle.size * (1.0F - progress * 0.65F);
+            int alpha = (int) (185.0F * (1.0F - progress));
+            int particleColor = new Color(color.getRed(), color.getGreen(), color.getBlue(), Math.max(0, Math.min(255, alpha))).getRGB();
+            RenderUtil.drawRoundedRectWithGl(px - size / 2.0F, py - size / 2.0F, px + size / 2.0F, py + size / 2.0F, size / 2.0F, particleColor);
+        }
     }
 
     private void renderTriangle(ScaledResolution scaledResolution,
@@ -641,6 +684,24 @@ public class TargetHUD extends Module {
                 this.lastAttackTimer.reset();
                 this.lastTarget = (EntityLivingBase) entity;
             }
+        }
+    }
+
+    private static class HitParticle {
+        final float x;
+        final float y;
+        final float vx;
+        final float vy;
+        final float size;
+        final long startTime;
+
+        HitParticle(float x, float y, float vx, float vy, float size, long startTime) {
+            this.x = x;
+            this.y = y;
+            this.vx = vx;
+            this.vy = vy;
+            this.size = size;
+            this.startTime = startTime;
         }
     }
 }

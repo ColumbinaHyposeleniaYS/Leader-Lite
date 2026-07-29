@@ -25,7 +25,6 @@ import leader.property.properties.FloatProperty;
 import leader.property.properties.IntProperty;
 import leader.property.properties.ModeProperty;
 import leader.util.*;
-import org.apache.commons.lang3.RandomUtils;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -37,13 +36,13 @@ public class Scaffold extends Module {
             0.40625, 0.46875, 0.53125, 0.59375, 0.65625, 0.71875,
             0.78125, 0.84375, 0.90625, 0.96875
     };
-    public final ModeProperty mode = new ModeProperty("Mode", 1, new String[]{"Normal", "Telly", "Snap", "Legit", "LegitTelly"});
-    public final ModeProperty rotationMode = new ModeProperty("Rotate Mode", 3, new String[]{"None", "Vanilla", "Backwards", "Prediction"}, () -> mode.getValue() != 3 && mode.getValue() != 4);
+    public final ModeProperty mode = new ModeProperty("Mode", 1, new String[]{"Normal", "Telly", "Snap", "Legit"});
+    public final ModeProperty rotationMode = new ModeProperty("Rotate Mode", 3, new String[]{"None", "Vanilla", "Backwards", "Prediction"}, () -> mode.getValue() != 3);
     public final ModeProperty moveFix = new ModeProperty("Move Fix", 1, new String[]{"None", "Silent"});
-    public final IntProperty jumpDelay = new IntProperty("Jump Delay", 2, 0, 5, () -> mode.getValue() == 1 || mode.getValue() == 4);
+    public final IntProperty jumpDelay = new IntProperty("Jump Delay", 2, 0, 5, () -> mode.getValue() == 1);
     public final IntProperty placeDelay = new IntProperty("Place Delay", 1, 0, 5);
-    public final FloatProperty startRotSpeed = new FloatProperty("Start Rotate Speed", 180.0F, 1.0F, 180.0F, () -> mode.getValue() == 1 || mode.getValue() == 4);
-    public final FloatProperty normalRotSpeed = new FloatProperty("Normal Rotate Speed", 180.0F, 1.0F, 180.0F, () -> mode.getValue() == 1 || mode.getValue() == 4);
+    public final FloatProperty startRotSpeed = new FloatProperty("Start Rotate Speed", 180.0F, 1.0F, 180.0F, () -> mode.getValue() == 1);
+    public final FloatProperty normalRotSpeed = new FloatProperty("Normal Rotate Speed", 180.0F, 1.0F, 180.0F, () -> mode.getValue() == 1);
     public final BooleanProperty swing = new BooleanProperty("Swing", true);
     public final BooleanProperty itemSpoof = new BooleanProperty("Item Spoof", false);
     public final BooleanProperty clutch = new BooleanProperty("Clutch", true);
@@ -52,15 +51,14 @@ public class Scaffold extends Module {
     public final FloatProperty edgeThreshold = new FloatProperty("Edge Threshold", 0.15F, 0.01F, 0.5F, () -> mode.getValue() == 2);
     public final BooleanProperty ticksLimit = new BooleanProperty("Ticks Limit", false, () -> mode.getValue() == 2);
     public final IntProperty limitTicks = new IntProperty("Limit Ticks", 10, 1, 40, () -> mode.getValue() == 2 && ticksLimit.getValue());
-    public final FloatProperty forwardSpeed = new FloatProperty("Forward Speed", 1830.0F, 1.0F, 180.0F, () -> mode.getValue() == 2);
+    public final FloatProperty forwardSpeed = new FloatProperty("Forward Speed", 180.0F, 1.0F, 180.0F, () -> mode.getValue() == 2);
     public final FloatProperty backSpeed = new FloatProperty("Back Speed", 180.0F, 1.0F, 180.0F, () -> mode.getValue() == 2);
     public final BooleanProperty snapRotation = new BooleanProperty("Snap Rotation", false, () -> mode.getValue() == 2);
-    public final BooleanProperty speedLimit = new BooleanProperty("Speed Limit", false, () -> mode.getValue() == 1 || mode.getValue() == 4);
-    public final IntProperty speedLimitTicks = new IntProperty("Speed Limit Ticks", 3, 0, 5, () -> (mode.getValue() == 1 || mode.getValue() == 4) && speedLimit.getValue());
-    public final IntProperty forwardRotationTicks = new IntProperty("Forward Rotation Ticks", 1, 1, 5, () -> (mode.getValue() == 1 || mode.getValue() == 4) && speedLimit.getValue());
-    public final IntProperty legitSneakDelay = new IntProperty("Legit Sneak Delay", 4, 1, 5, () -> mode.getValue() == 3 || mode.getValue() == 4);
-    public final IntProperty legitPlaceDuration = new IntProperty("Legit Place Time", 4, 2, 5, () -> mode.getValue() == 3 || mode.getValue() == 4);
-    public final FloatProperty legitTellyRotSpeed = new FloatProperty("Legit Telly Rot Speed", 24.0F, 2.0F, 90.0F, () -> mode.getValue() == 4);
+    public final BooleanProperty speedLimit = new BooleanProperty("Speed Limit", false, () -> mode.getValue() == 1);
+    public final IntProperty speedLimitTicks = new IntProperty("Speed Limit Ticks", 3, 0, 5, () -> mode.getValue() == 1 && speedLimit.getValue());
+    public final IntProperty forwardRotationTicks = new IntProperty("Forward Rotation Ticks", 1, 1, 5, () -> mode.getValue() == 1 && speedLimit.getValue());
+    public final IntProperty legitSneakDelay = new IntProperty("Legit Sneak Delay", 4, 1, 5, () -> mode.getValue() == 3);
+    public final IntProperty legitPlaceDuration = new IntProperty("Legit Place Time", 4, 2, 5, () -> mode.getValue() == 3);
 
 
     private int rotationTick = 0;
@@ -93,9 +91,6 @@ public class Scaffold extends Module {
     private int legitEdgeState = 0;
     private int legitEdgeTimer = 0;
     private boolean legitWasOnEdge = false;
-    private int legitTellyStage = 0;
-    private int legitTellyDelay = 0;
-    private boolean legitTellyWasOnEdge = false;
 
     public Scaffold() {
         super("Scaffold", false);
@@ -260,15 +255,12 @@ public class Scaffold extends Module {
         return false;
     }
 
-    // ========== Event handlers ==========
-
     @EventTarget(Priority.HIGH)
     public void onUpdate(UpdateEvent event) {
         if (this.isEnabled() && event.getType() == EventType.PRE) {
             boolean tellyMode = this.mode.getValue() == 1;
             boolean legitMode = this.mode.getValue() == 3;
-            boolean legitTellyMode = this.mode.getValue() == 4;
-            boolean bridgeMode = tellyMode || legitTellyMode;
+            boolean bridgeMode = tellyMode;
 
             if (this.rotationTick > 0) this.rotationTick--;
             if (this.forwardRotateTicksLeft > 0) this.forwardRotateTicksLeft--;
@@ -333,46 +325,6 @@ public class Scaffold extends Module {
                     this.pitch = RotationUtil.quantizeAngle(85.0F);
                     this.canRotate = true;
                 }
-            } else if (legitTellyMode) {
-                this.legitTellyWasOnEdge = mc.thePlayer.onGround && this.isOnEdge();
-                boolean edgeReady = !mc.thePlayer.onGround || this.legitTellyWasOnEdge;
-                if (edgeReady) {
-                    float baseYaw = this.getCurrentYaw();
-                    float targetYaw = RotationUtil.quantizeAngle(baseYaw - 180.0F);
-                    float targetPitch = RotationUtil.quantizeAngle(this.legitTellyWasOnEdge ? 83.0F : 81.0F);
-                    if (mc.thePlayer.onGround) {
-                        if (this.legitTellyStage == 0) {
-                            this.legitTellyDelay = this.legitSneakDelay.getValue();
-                            this.legitTellyStage = 1;
-                        }
-                        if (this.legitTellyStage == 1) {
-                            if (this.legitTellyDelay > 0) {
-                                this.legitTellyDelay--;
-                            } else {
-                                this.legitTellyStage = 2;
-                                this.legitTellyDelay = this.legitPlaceDuration.getValue();
-                            }
-                        } else if (this.legitTellyStage == 2) {
-                            if (this.legitTellyDelay > 0) this.legitTellyDelay--;
-                            if (this.legitTellyDelay <= 0) {
-                                this.legitTellyStage = 3;
-                                this.legitTellyDelay = 2 + (int) (Math.random() * 3);
-                            }
-                        } else if (this.legitTellyStage == 3) {
-                            if (this.legitTellyDelay > 0) this.legitTellyDelay--;
-                            if (this.legitTellyDelay <= 0) {
-                                this.legitTellyStage = 0;
-                                this.legitTellyDelay = 0;
-                            }
-                        }
-                    }
-                    this.yaw = targetYaw;
-                    this.pitch = targetPitch;
-                    this.canRotate = true;
-                } else {
-                    this.legitTellyStage = 0;
-                    this.legitTellyDelay = 0;
-                }
             }
 
             if (this.canPlace()) {
@@ -403,7 +355,7 @@ public class Scaffold extends Module {
                 float diagonalYaw = this.isDiagonal(currentYaw) ? yawDiffTo180
                         : RotationUtil.wrapAngleDiff(currentYaw - 135.0F * ((currentYaw + 180.0F) % 90.0F < 45.0F ? 1.0F : -1.0F), event.getYaw());
 
-                if (!this.canRotate && !legitMode && !legitTellyMode) {
+                if (!this.canRotate && !legitMode) {
                     switch (this.rotationMode.getValue()) {
                         case 1: this.yaw = this.yaw == -180.0F && this.pitch == 0.0F ? RotationUtil.quantizeAngle(diagonalYaw) : RotationUtil.quantizeAngle(diagonalYaw); break;
                         case 2: if (this.yaw == -180.0F && this.pitch == 0.0F) { this.yaw = RotationUtil.quantizeAngle(yawDiffTo180); this.pitch = RotationUtil.quantizeAngle(85.0F); } else this.yaw = RotationUtil.quantizeAngle(yawDiffTo180); break;
@@ -416,7 +368,7 @@ public class Scaffold extends Module {
                 if (this.mode.getValue() == 2 && snapForward) blockData = null;
 
                 if (blockData != null) {
-                    if (this.rotationMode.getValue() == 3 && !legitMode && !legitTellyMode) {
+                    if (blockData != null && this.rotationMode.getValue() == 3 && !legitMode) {
                         double[] offsets = {0.1, 0.3, 0.5, 0.7, 0.9};
                         double[] x = offsets, y = offsets, z = offsets;
                         switch (blockData.facing()) {
@@ -453,35 +405,6 @@ public class Scaffold extends Module {
                             bestPitch += RandomUtil.nextFloat(-0.3F, 0.3F);
                             this.yaw = bestYaw; this.pitch = bestPitch; this.canRotate = true; hitVec = bestHitVec;
                         }
-                    } else if (legitTellyMode) {
-                        // Telly Legit: find any valid rotation, apply via smooth direct rotation
-                        double[] x = placeOffsets, y = placeOffsets, z = placeOffsets;
-                        switch (blockData.facing()) {
-                            case NORTH: z = new double[]{0.0}; break;
-                            case EAST: x = new double[]{1.0}; break;
-                            case SOUTH: z = new double[]{1.0}; break;
-                            case WEST: x = new double[]{0.0}; break;
-                            case DOWN: y = new double[]{0.0}; break;
-                            case UP: y = new double[]{1.0}; break;
-                        }
-                        for (double dx : x) {
-                            for (double dy : y) {
-                                for (double dz : z) {
-                                    double targetX = blockData.blockPos().getX() + dx;
-                                    double targetY = blockData.blockPos().getY() + dy;
-                                    double targetZ = blockData.blockPos().getZ() + dz;
-                                    float[] rot = RotationUtil.getRotations(targetX, targetY, targetZ);
-                                    MovingObjectPosition mop = RotationUtil.rayTrace(rot[0], rot[1], mc.playerController.getBlockReachDistance(), 1.0F);
-                                    if (mop != null && mop.typeOfHit == MovingObjectType.BLOCK
-                                            && mop.getBlockPos().equals(blockData.blockPos()) && mop.sideHit == blockData.facing()) {
-                                        this.yaw = rot[0]; this.pitch = rot[1]; this.canRotate = true; hitVec = mop.hitVec;
-                                        break;
-                                    }
-                                }
-                                if (hitVec != null) break;
-                            }
-                            if (hitVec != null) break;
-                        }
                     } else {
                         double[] x = placeOffsets, y = placeOffsets, z = placeOffsets;
                         switch (blockData.facing()) {
@@ -515,19 +438,10 @@ public class Scaffold extends Module {
                 }
 
                 if (this.canRotate && MoveUtil.isForwardPressed() && Math.abs(MathHelper.wrapAngleTo180_float(yawDiffTo180 - this.yaw)) < 90.0F) {
-                    if (this.rotationMode.getValue() == 2 && !legitMode && !legitTellyMode) this.yaw = RotationUtil.quantizeAngle(yawDiffTo180);
+                    if (this.rotationMode.getValue() == 2 && !legitMode) this.yaw = RotationUtil.quantizeAngle(yawDiffTo180);
                 }
 
-                if (legitTellyMode && this.canRotate) {
-                    float targetYaw = this.yaw, targetPitch = this.pitch;
-                    float tlSpeed = this.legitTellyRotSpeed.getValue();
-                    float yDiff = MathHelper.wrapAngleTo180_float(targetYaw - event.getYaw());
-                    float pDiff = targetPitch - mc.thePlayer.rotationPitch;
-                    targetYaw = event.getYaw() + MathHelper.clamp_float(yDiff, -tlSpeed, tlSpeed);
-                    targetPitch = MathHelper.clamp_float(mc.thePlayer.rotationPitch + MathHelper.clamp_float(pDiff, -tlSpeed, tlSpeed), -90F, 90F);
-                    event.setRotation(RotationUtil.quantizeAngle(targetYaw), RotationUtil.quantizeAngle(targetPitch), 3);
-                    if (this.moveFix.getValue() == 1) event.setPervRotation(RotationUtil.quantizeAngle(targetYaw), 3);
-                } else if (!legitMode && this.rotationMode.getValue() != 0 && this.mode.getValue() != 2) {
+                if (!legitMode && this.rotationMode.getValue() != 0 && this.mode.getValue() != 2) {
                     float targetYaw = this.yaw, targetPitch = this.pitch;
                     if (tellyMode && speedLimit.getValue() && forwardRotateTicksLeft > 0) {
                         float yawDelta = MathHelper.wrapAngleTo180_float(mc.thePlayer.rotationYaw - event.getYaw());
@@ -586,11 +500,6 @@ public class Scaffold extends Module {
                 if (blockData != null && hitVec != null && this.rotationTick <= 0 && legitCanPlace) {
                     if (this.placeDelayCounter > 0) {
                         this.placeDelayCounter--;
-                    } else if (legitTellyMode) {
-                        for (int p = 0; p < RandomUtils.nextInt(1, 4); p++) {
-                            this.place(blockData.blockPos(), blockData.facing(), hitVec);
-                        }
-                        this.placeDelayCounter = this.placeDelay.getValue();
                     } else {
                         MovingObjectPosition finalCheck = RotationUtil.rayTrace(this.yaw, this.pitch, mc.playerController.getBlockReachDistance(), 1.0F);
                         if (finalCheck != null && finalCheck.typeOfHit == MovingObjectType.BLOCK

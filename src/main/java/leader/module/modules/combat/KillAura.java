@@ -453,13 +453,13 @@ public class KillAura extends Module {
             boolean block = attack && this.canAutoBlock();
             if (!block) {
                 Leader.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
-                this.fakeBlockState = false;
-                this.blockTick = 0;
                 if (autoBlock.getValue() == 2 && isBlocking && Leader.moduleManager.getModule(NoSlow.class).isEnabled()) {
                     this.isBlocking = false;
                     stopBlock();
                 }
                 else this.isBlocking = false;
+                this.fakeBlockState = false;
+                this.blockTick = 0;
             }
             if (attack) {
                 boolean swap = false;

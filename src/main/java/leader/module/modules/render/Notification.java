@@ -189,8 +189,8 @@ public class Notification extends Module {
     }
 
     private void renderModern(ScaledResolution sr, long now, long dur) {
-        float cardWidth = 132.0F;
-        float cardHeight = 28.0F;
+        float cardWidth = 136.0F;
+        float cardHeight = 34.0F;
         float gap = 5.0F;
         float radius = 6.0F;
         float textScale = this.fontScale.getValue();
@@ -223,19 +223,19 @@ public class Notification extends Module {
                 ShaderElement.addBlurTask(() -> RenderUtil.drawRoundedRectWithGl(bx, by, bx + cardWidth, by + cardHeight, radius, -1));
             }
 
-            int bgColor = new Color(12, 14, 20, (int) (190.0F * alpha)).getRGB();
-            int layerColor = new Color(255, 255, 255, (int) (18.0F * alpha)).getRGB();
+            int bgColor = new Color(12, 14, 20, (int) (198.0F * alpha)).getRGB();
             int accent = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), (int) (235.0F * alpha)).getRGB();
             int accentSoft = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), (int) (55.0F * alpha)).getRGB();
-            int track = new Color(255, 255, 255, (int) (35.0F * alpha)).getRGB();
+            int track = new Color(255, 255, 255, (int) (34.0F * alpha)).getRGB();
 
-            RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 2.0F, x + cardWidth + 1.0F, y + cardHeight + 2.0F, radius, new Color(0, 0, 0, (int) (45.0F * alpha)).getRGB());
+            RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 2.0F, x + cardWidth + 1.0F, y + cardHeight + 2.0F, radius, new Color(0, 0, 0, (int) (42.0F * alpha)).getRGB());
             RenderUtil.drawRoundedRectWithGl(x, y, x + cardWidth, y + cardHeight, radius, bgColor);
-            RenderUtil.drawRoundedRectWithGl(x + 4.0F, y + 4.0F, x + cardWidth - 4.0F, y + cardHeight - 4.0F, 4.0F, layerColor);
-            RenderUtil.drawRoundedRectWithGl(x, y, x + 4.0F, y + cardHeight, 2.0F, accent);
-            RenderUtil.drawLine(x + 8.0F, y + cardHeight - 4.0F, x + cardWidth - 8.0F, y + cardHeight - 4.0F, 2.0F, track);
-            RenderUtil.drawLine(x + 8.0F, y + cardHeight - 4.0F, x + 8.0F + (cardWidth - 16.0F) * (1.0F - progress), y + cardHeight - 4.0F, 2.0F, accent);
-            RenderUtil.drawRoundedRectWithGl(x + cardWidth - 23.0F, y + 6.0F, x + cardWidth - 9.0F, y + 20.0F, 4.0F, accentSoft);
+            RenderUtil.drawRoundedRectWithGl(x, y, x + 2.0F, y + cardHeight, 1.0F, accent);
+            RenderUtil.drawRoundedRectWithGl(x + cardWidth - 23.0F, y + 7.0F, x + cardWidth - 9.0F, y + 21.0F, 4.0F, accentSoft);
+
+            float progressY = y + cardHeight - 4.0F;
+            RenderUtil.drawRect(x + 8.0F, progressY, x + cardWidth - 8.0F, progressY + 2.0F, track);
+            RenderUtil.drawRect(x + 8.0F, progressY, x + 8.0F + (cardWidth - 16.0F) * (1.0F - progress), progressY + 2.0F, accent);
 
             GlStateManager.disableDepth();
             GlStateManager.enableBlend();
@@ -248,10 +248,10 @@ public class Notification extends Module {
             GlStateManager.translate(x + 10.0F, y + 5.0F, 0.0F);
             GlStateManager.scale(textScale, textScale, 1.0F);
             FontManager.drawString(entry.moduleName, 0.0F, 0.0F, nameColor, false);
-            FontManager.drawString(stateText, 0.0F, FontManager.getFontHeight() + 1.0F, stateColor, false);
+            FontManager.drawString(stateText, 0.0F, FontManager.getFontHeight() + 2.0F, stateColor, false);
             GlStateManager.popMatrix();
 
-            drawStatusIcon(x + cardWidth - 20.0F, y + 9.0F, 8.0F, entry.enabled, themeColor, alpha);
+            drawStatusIcon(x + cardWidth - 20.0F, y + 10.0F, 8.0F, entry.enabled, themeColor, alpha);
 
             GlStateManager.enableDepth();
             GlStateManager.disableBlend();
