@@ -143,14 +143,41 @@ public class PlayerUtil {
         return blockPos.distanceSqToCenter(x, y, z) < Math.pow(reach, 2.0);
     }
 
+    public static boolean isLegitKeepSprintEnabled() {
+        if (Leader.moduleManager == null || mc.thePlayer == null) {
+            return false;
+        }
+
+        KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.modules.get(KeepSprint.class);
+        return keepSprint != null && keepSprint.isEnabled() && keepSprint.isLegitMode();
+    }
+
+    public static boolean prepareLegitKeepSprintAttack() {
+        if (!isLegitKeepSprintEnabled() || !mc.thePlayer.isSprinting()) {
+            return false;
+        }
+
+        mc.thePlayer.setSprinting(false);
+        return true;
+    }
+
+    public static void restoreLegitKeepSprintAttack(boolean restoreSprint) {
+        if (restoreSprint && isLegitKeepSprintEnabled()) {
+            mc.thePlayer.setSprinting(true);
+        }
+    }
+
     public static void attackEntity(Entity target) {
         if (ForgeHooks.onPlayerAttackTarget(mc.thePlayer, target)) {
+            boolean wasSprinting = mc.thePlayer.isSprinting();
+            boolean restoreSprint = false;
             if (target.canAttackWithItem() && !target.hitByEntity(mc.thePlayer)) {
                 float baseDamage = (float) mc.thePlayer.getEntityAttribute(SharedMonsterAttributes.attackDamage).getAttributeValue();
                 float enchantmentBonus = EnchantmentHelper.getModifierForCreature(
                         mc.thePlayer.getHeldItem(),
                         target instanceof EntityLivingBase ? ((EntityLivingBase) target).getCreatureAttribute() : EnumCreatureAttribute.UNDEFINED
                 );
+                restoreSprint = prepareLegitKeepSprintAttack() && wasSprinting;
                 int knockbackLevel = EnchantmentHelper.getKnockbackModifier(mc.thePlayer);
                 if (mc.thePlayer.isSprinting()) {
                     ++knockbackLevel;
@@ -182,13 +209,12 @@ public class PlayerUtil {
                                     0.1,
                                     MathHelper.cos(mc.thePlayer.rotationYaw * (float) Math.PI / 180.0F) * (float) knockbackLevel * 0.5F
                             );
-                            KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.modules.get(KeepSprint.class);
-                            if (keepSprint.isEnabled() && keepSprint.shouldKeepSprint()) {
-                                mc.thePlayer.motionX *= 0.6 + 0.4 * (1.0 - keepSprint.slowdown.getValue().doubleValue() / 100.0);
-                                mc.thePlayer.motionZ *= 0.6 + 0.4 * (1.0 - keepSprint.slowdown.getValue().doubleValue() / 100.0);
+                            if (isLegitKeepSprintEnabled()) {
+                                mc.thePlayer.motionX *= 1.0D;
+                                mc.thePlayer.motionZ *= 1.0D;
                             } else {
-                                mc.thePlayer.motionX *= 0.6;
-                                mc.thePlayer.motionZ *= 0.6;
+                                mc.thePlayer.motionX *= 0.6D;
+                                mc.thePlayer.motionZ *= 0.6D;
                                 mc.thePlayer.setSprinting(false);
                             }
                         }
@@ -225,6 +251,7 @@ public class PlayerUtil {
                     }
                 }
             }
+            restoreLegitKeepSprintAttack(restoreSprint);
         }
     }
 }

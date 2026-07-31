@@ -260,8 +260,7 @@ public class Scaffold extends Module {
         float targetPitch = mc.thePlayer.rotationPitch;
 
         if (this.legitTellyPhase == 1) {
-            float forwardYaw = this.getCurrentYaw();
-            targetYaw = forwardYaw;
+            targetYaw = this.getCurrentYaw();
             targetPitch = 0.0F;
         }
 
