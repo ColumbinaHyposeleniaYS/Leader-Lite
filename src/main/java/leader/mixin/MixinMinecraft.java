@@ -129,6 +129,7 @@ public abstract class MixinMinecraft {
         EventManager.call(event);
         if (event.isCancelled()) {
             callbackInfo.cancel();
+            return;
         }
     }
 

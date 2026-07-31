@@ -6,9 +6,11 @@ import leader.module.modules.render.HUD;
 import leader.property.Property;
 import leader.property.properties.*;
 import leader.ui.Component;
+import leader.ui.GuiText;
 import leader.ui.dataset.impl.*;
 import leader.util.RenderUtil;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Gui;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,6 +21,8 @@ public class ModuleComponent implements Component {
     public int offsetY;
     private final ArrayList<Component> settings;
     public boolean panelExpand;
+    private static final int TITLE_HEIGHT = 18;
+    private static final int SETTINGS_TOP_GAP = 6;
 
     public ModuleComponent(Module mod, CategoryComponent category, int offsetY) {
         this.mod = mod;
@@ -26,16 +30,21 @@ public class ModuleComponent implements Component {
         this.offsetY = offsetY;
         this.settings = new ArrayList<>();
         this.panelExpand = false;
-        int y = offsetY + 12;
+        int y = TITLE_HEIGHT + SETTINGS_TOP_GAP;
         if (!Leader.propertyManager.properties.get(mod.getClass()).isEmpty()) {
             for (Property<?> prop : Leader.propertyManager.properties.get(mod.getClass())) {
-                if (prop instanceof BooleanProperty)      { settings.add(new CheckBoxComponent((BooleanProperty) prop, this, y)); y += 12; }
-                else if (prop instanceof FloatProperty)   { settings.add(new SliderComponent(new FloatSlider((FloatProperty) prop), this, y)); y += 16; }
-                else if (prop instanceof IntProperty)     { settings.add(new SliderComponent(new IntSlider((IntProperty) prop), this, y)); y += 16; }
-                else if (prop instanceof PercentProperty) { settings.add(new SliderComponent(new PercentageSlider((PercentProperty) prop), this, y)); y += 16; }
-                else if (prop instanceof ModeProperty)    { settings.add(new ModeComponent((ModeProperty) prop, this, y)); y += 12; }
-                else if (prop instanceof ColorProperty)   { settings.add(new ColorSliderComponent((ColorProperty) prop, this, y)); y += 32; }
-                else if (prop instanceof TextProperty)    { settings.add(new TextComponent((TextProperty) prop, this, y)); y += 12; }
+                Component component = null;
+                if (prop instanceof BooleanProperty) component = new CheckBoxComponent((BooleanProperty) prop, this, y);
+                else if (prop instanceof FloatProperty) component = new SliderComponent(new FloatSlider((FloatProperty) prop), this, y);
+                else if (prop instanceof IntProperty) component = new SliderComponent(new IntSlider((IntProperty) prop), this, y);
+                else if (prop instanceof PercentProperty) component = new SliderComponent(new PercentageSlider((PercentProperty) prop), this, y);
+                else if (prop instanceof ModeProperty) component = new ModeComponent((ModeProperty) prop, this, y);
+                else if (prop instanceof ColorProperty) component = new ColorSliderComponent((ColorProperty) prop, this, y);
+                else if (prop instanceof TextProperty) component = new TextComponent((TextProperty) prop, this, y);
+                if (component != null) {
+                    settings.add(component);
+                    y += component.getHeight();
+                }
             }
         }
         settings.add(new BindComponent(this, y));
@@ -46,21 +55,19 @@ public class ModuleComponent implements Component {
         int x = category.getX();
         int y = category.getY() + offsetY;
         int width = category.getWidth();
-        int titleH = 16;
-        if (panelExpand) {
-            RenderUtil.drawRoundedRectWithGl(x + 1, y, x + width - 1, y + 16, 4, new Color(255,255,255,10).getRGB());
-        }
+        int titleH = TITLE_HEIGHT;
         if (mod.isEnabled()) {
-            Color ind = ((HUD) Leader.moduleManager.modules.get(HUD.class)).getColor(System.currentTimeMillis(), offset.get());
-            RenderUtil.drawRoundedRectWithGl(x + 2, y + 2, x + 4, y + 14, 2, ind.getRGB());
+            RenderUtil.drawRoundedRectWithGl(x + 8, y + 5, x + 12, y + titleH - 5, 2, new Color(92, 169, 255).getRGB());
         }
-        int textColor = mod.isEnabled() ?
-                ((HUD) Leader.moduleManager.modules.get(HUD.class)).getColor(System.currentTimeMillis(), offset.get()).getRGB() :
-                new Color(160, 160, 170).getRGB();
-        Minecraft.getMinecraft().fontRendererObj.drawStringWithShadow(mod.getName(), x + 7, y + 4, textColor);
+        if (panelExpand) {
+            Gui.drawRect(x + 8, y + titleH - 1, x + width - 8, y + titleH, new Color(255, 255, 255, 18).getRGB());
+        }
+        int textColor = mod.isEnabled() ? new Color(245, 247, 250).getRGB() : new Color(190, 193, 201).getRGB();
+        String displayName = trimText(mod.getName(), width - 34);
+        GuiText.draw(displayName, x + 17, y + 6, textColor);
         if (!settings.isEmpty()) {
-            String arrow = panelExpand ? "▼" : "▶";
-            Minecraft.getMinecraft().fontRendererObj.drawStringWithShadow(arrow, x + width - 10, y + 5, 0xAAAAAA);
+            String arrow = panelExpand ? "v" : ">";
+            GuiText.draw(arrow, x + width - 16, y + 6, new Color(155, 160, 170).getRGB());
         }
         if (panelExpand) {
             for (Component c : settings) {
@@ -74,12 +81,28 @@ public class ModuleComponent implements Component {
     public ArrayList<Component> getSettings() {
         return settings;
     }
-    @Override public void setComponentStartAt(int n) { this.offsetY = n; int y = n + 16; for (Component c : settings) { c.setComponentStartAt(y); if (c.isVisible()) y += c.getHeight(); } }
-    @Override public int getHeight() { return panelExpand ? 16 + settings.stream().filter(Component::isVisible).mapToInt(Component::getHeight).sum() : 16; }
+    @Override public void setComponentStartAt(int n) { this.offsetY = n; int y = n + TITLE_HEIGHT + SETTINGS_TOP_GAP; for (Component c : settings) { c.setComponentStartAt(y); if (c.isVisible()) y += c.getHeight(); } }
+    @Override public int getHeight() { return panelExpand ? TITLE_HEIGHT + SETTINGS_TOP_GAP + settings.stream().filter(Component::isVisible).mapToInt(Component::getHeight).sum() : TITLE_HEIGHT; }
     @Override public void update(int mx, int my) { if (!panelExpand) return; for (Component c : settings) if (c.isVisible()) c.update(mx, my); }
-    @Override public void mouseDown(int x, int y, int b) { if (isHovered(x,y) && b==0) mod.toggle(); if (isHovered(x,y) && b==1) panelExpand = !panelExpand; if (!panelExpand) return; for (Component c : settings) if (c.isVisible()) c.mouseDown(x,y,b); }
+    @Override public void mouseDown(int x, int y, int b) {
+        if (isHovered(x, y)) {
+            if (b == 0) mod.toggle();
+            else if (b == 1) panelExpand = !panelExpand;
+            return;
+        }
+        if (!panelExpand) return;
+        for (Component c : settings) if (c.isVisible()) c.mouseDown(x, y, b);
+    }
     @Override public void mouseReleased(int x, int y, int b) { if (!panelExpand) return; for (Component c : settings) if (c.isVisible()) c.mouseReleased(x,y,b); }
     @Override public void keyTyped(char ch, int k) { if (!panelExpand) return; for (Component c : settings) if (c.isVisible()) c.keyTyped(ch, k); }
     @Override public boolean isVisible() { return true; }
-    private boolean isHovered(int x, int y) { return x > category.getX() && x < category.getX()+category.getWidth() && y > category.getY()+offsetY && y < category.getY()+16+offsetY; }
+    public boolean contains(int x, int y) {
+        return x > category.getX() + 5 && x < category.getX() + category.getWidth() - 5
+                && y > category.getY() + offsetY && y < category.getY() + offsetY + getHeight();
+    }
+    private boolean isHovered(int x, int y) { return x > category.getX() + 5 && x < category.getX() + category.getWidth() - 5 && y > category.getY() + offsetY && y < category.getY() + 18 + offsetY; }
+
+    private String trimText(String text, int maxWidth) {
+        return GuiText.trim(text, maxWidth);
+    }
 }

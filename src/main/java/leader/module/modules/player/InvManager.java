@@ -6,6 +6,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.inventory.ContainerPlayer;
 import net.minecraft.item.*;
+import net.minecraft.network.play.client.C0DPacketCloseWindow;
+import net.minecraft.network.play.client.C16PacketClientStatus;
 import net.minecraft.world.WorldSettings.GameType;
 import org.apache.commons.lang3.RandomUtils;
 import leader.event.EventTarget;
@@ -17,6 +19,7 @@ import leader.property.properties.BooleanProperty;
 import leader.property.properties.IntProperty;
 import leader.property.properties.ModeProperty;
 import leader.util.ItemUtil;
+import leader.util.PacketUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,8 +30,9 @@ public class InvManager extends Module {
     public final IntProperty minDelay = new IntProperty("Min Delay", 0, 0, 20);
     public final IntProperty maxDelay = new IntProperty("Max Delay", 0, 0, 20);
     public final IntProperty openDelay = new IntProperty("Open Delay", 0, 0, 20);
-    public final ModeProperty mode = new ModeProperty("Mode", 1, new String[]{"Normal", "Instant"});
-    public final BooleanProperty autoClose = new BooleanProperty("Auto Close", false);
+    public final ModeProperty mode = new ModeProperty("Mode", 1, new String[]{"Normal", "Instant", "Spoof"});
+    public final BooleanProperty legitSpoof = new BooleanProperty("Legit Spoof", false, () -> mode.getValue() == 2);
+    public final BooleanProperty autoClose = new BooleanProperty("Auto Close", false, () -> mode.getValue() != 2);
     public final BooleanProperty autoArmor = new BooleanProperty("Auto Armor", true);
     public final BooleanProperty dropTrash = new BooleanProperty("Drop Trash", true);
     public final IntProperty swordSlot = new IntProperty("Sword Slot", 1, 0, 9);
@@ -48,6 +52,11 @@ public class InvManager extends Module {
     private int actionDelay = 0;
     private int oDelay = 0;
     private boolean inventoryOpen = false;
+    private boolean spoofServerOpen = false;
+    private boolean spoofNextClose = false;
+    private boolean spoofOpenedThisTick = false;
+    private boolean legitSpoofOpen = false;
+    private int legitSpoofOpenTick = -1;
 
     public InvManager() {
         super("InvManager", false);
@@ -55,7 +64,12 @@ public class InvManager extends Module {
 
     @Override
     public String[] getSuffix() {
-        return new String[]{mode.getModeString()};
+        return new String[]{mode.getModeString() + (mode.getValue() == 2 && legitSpoof.getValue() ? " Legit" : "")};
+    }
+
+    public boolean shouldHideLegitSpoofInventory() {
+        return this.isEnabled() && this.mode.getValue() == 2 && this.legitSpoof.getValue()
+                && this.legitSpoofOpen && mc.currentScreen instanceof GuiInventory;
     }
 
     private boolean isValidGameMode() {
@@ -71,8 +85,8 @@ public class InvManager extends Module {
         }
     }
 
-    private void clickSlot(int integer1, int integer2, int integer3, int integer4) {
-        mc.playerController.windowClick(integer1, integer2, integer3, integer4, mc.thePlayer);
+    private void clickSlot(int windowId, int slot, int button, int mode) {
+        mc.playerController.windowClick(windowId, slot, button, mode, mc.thePlayer);
     }
 
     private int getStackSize(int slot) {
@@ -186,6 +200,44 @@ public class InvManager extends Module {
         return count;
     }
 
+    private void spoofOpen() {
+        if (!spoofServerOpen) {
+            PacketUtil.sendPacket(new C16PacketClientStatus(C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT));
+            spoofServerOpen = true;
+            spoofOpenedThisTick = true;
+        }
+    }
+
+    private void spoofClose() {
+        if (spoofServerOpen) {
+            PacketUtil.sendPacket(new C0DPacketCloseWindow(mc.thePlayer.inventoryContainer.windowId));
+            spoofServerOpen = false;
+        }
+    }
+
+    private void openLegitSpoofInventory() {
+        if (mc.currentScreen instanceof GuiInventory) {
+            this.legitSpoofOpen = true;
+            return;
+        }
+        mc.displayGuiScreen(new GuiInventory(mc.thePlayer));
+        this.legitSpoofOpen = true;
+        this.legitSpoofOpenTick = mc.thePlayer.ticksExisted;
+    }
+
+    private void closeLegitSpoofInventory() {
+        if (this.legitSpoofOpen && mc.currentScreen instanceof GuiInventory) {
+            mc.displayGuiScreen(null);
+        }
+        this.legitSpoofOpen = false;
+        this.legitSpoofOpenTick = -1;
+    }
+
+    private boolean isLegitSpoofScreenOpen() {
+        return this.legitSpoofOpen && mc.currentScreen instanceof GuiInventory;
+    }
+
+
     private boolean isInventorySorted() {
         if (!isValidGameMode()) return true;
 
@@ -193,7 +245,6 @@ public class InvManager extends Module {
         int equippedSwordSlot = ItemUtil.findSwordInInventorySlot(preferredSwordHotbarSlot, true);
         int inventorySwordSlot = ItemUtil.findSwordInInventorySlot(preferredSwordHotbarSlot, false);
 
-        // Disabler C09: compute second sword for drop protection in isSorted check
         int secondSwordSlot = -1;
         int prefSecondSwordSlot = -1;
         Disabler disabler = (Disabler) Leader.moduleManager.getModule(Disabler.class);
@@ -353,14 +404,46 @@ public class InvManager extends Module {
     @EventTarget
     public void onUpdate(UpdateEvent event) {
         if (event.getType() == EventType.PRE) {
+            this.spoofOpenedThisTick = false;
             if (this.actionDelay > 0) {
                 this.actionDelay--;
             }
             if (this.oDelay > 0) {
                 this.oDelay--;
             }
+            
+            if (this.isEnabled() && this.isValidGameMode() && this.mode.getValue() == 2) {
+                if (this.actionDelay > 0) return;
+                if (mc.thePlayer.isUsingItem()) return;
+                if (isInventorySorted()) {
+                    if (this.legitSpoof.getValue()) {
+                        this.closeLegitSpoofInventory();
+                    } else {
+                        if (spoofServerOpen) spoofNextClose = true;
+                        if (spoofNextClose) { spoofClose(); spoofNextClose = false; }
+                    }
+                    return;
+                }
 
-            boolean isInventoryOpen = (mc.currentScreen instanceof GuiInventory);
+                if (this.legitSpoof.getValue()) {
+                    if (!this.isLegitSpoofScreenOpen()) {
+                        this.openLegitSpoofInventory();
+                        this.inventoryOpen = true;
+                        this.oDelay = 0;
+                        return;
+                    }
+                    if (this.legitSpoofOpenTick == mc.thePlayer.ticksExisted) return;
+                } else {
+                    if (spoofNextClose) { spoofClose(); spoofNextClose = false; return; }
+                    spoofOpen();
+                    this.oDelay = 0;
+                    this.inventoryOpen = true;
+                    if (this.spoofOpenedThisTick) return;
+                }
+            }
+
+            boolean isInventoryOpen = (mc.currentScreen instanceof GuiInventory)
+                    || (this.mode.getValue() == 2 && !this.legitSpoof.getValue() && spoofServerOpen);
             if (!isInventoryOpen) {
                 this.inventoryOpen = false;
             } else if ((mc.currentScreen instanceof GuiInventory) && !(((GuiInventory) mc.currentScreen).inventorySlots instanceof ContainerPlayer)) {
@@ -409,8 +492,6 @@ public class InvManager extends Module {
                                 else inventoryBowSlot = bestBow;
                             }
                         }
-
-                        // Disabler C09: compute second sword and second sword's preferred slot
                         Disabler disabler = (Disabler) Leader.moduleManager.getModule(Disabler.class);
                         int prefSecondSwordSlot = -1;
                         if (disabler != null && disabler.isEnabled() && disabler.c09.getValue()) {
@@ -421,7 +502,7 @@ public class InvManager extends Module {
                             }
                         }
 
-                        if (this.mode.getValue() == 0) {
+                        if (this.mode.getValue() == 0 || this.mode.getValue() == 2) {
                             if (this.autoArmor.getValue()) {
                             for (int i = 0; i < 4; i++) {
                                 int equippedSlot = equippedArmorSlots.get(i);
@@ -453,7 +534,6 @@ public class InvManager extends Module {
                                     return;
                                 }
                             }
-                            // Disabler C09: sort second sword AFTER first (best) sword is in place
                             if (secondSwordSlot != -1 && prefSecondSwordSlot >= 0 && prefSecondSwordSlot <= 8
                                     && prefSecondSwordSlot != preferredSwordHotbarSlot) {
                                 usedHotbarSlots.add(prefSecondSwordSlot);
@@ -812,6 +892,26 @@ public class InvManager extends Module {
                     this.minDelay.getValue() + 1,
                     this.maxDelay.getValue() + 2
             );
+        }
+    }
+
+    @Override
+    public void onEnabled() {
+        if (mode.getValue() == 2) {
+            spoofServerOpen = false;
+            spoofNextClose = false;
+            legitSpoofOpen = false;
+            legitSpoofOpenTick = -1;
+        }
+    }
+
+    @Override
+    public void onDisabled() {
+        if (mode.getValue() == 2) {
+            spoofClose();
+            closeLegitSpoofInventory();
+            spoofServerOpen = false;
+            spoofNextClose = false;
         }
     }
 

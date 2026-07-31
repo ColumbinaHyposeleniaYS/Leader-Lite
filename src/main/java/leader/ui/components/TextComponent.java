@@ -1,8 +1,8 @@
 package leader.ui.components;
 import leader.enums.ChatColors;
 import leader.property.properties.TextProperty;
-import leader.ui.ClickGui;
 import leader.ui.Component;
+import leader.ui.GuiText;
 import leader.ui.callback.GuiInput;
 import leader.util.RenderUtil;
 import net.minecraft.client.Minecraft;
@@ -25,27 +25,20 @@ public class TextComponent implements Component {
         this.offsetY = offsetY;
     }
     public void draw(AtomicInteger offset) {
-        int x = module.category.getX() + 4;
+        int x = module.category.getX() + 8;
         int y = module.category.getY() + offsetY;
-        int w = module.category.getWidth() - 8;
-        // 边框背景
-        RenderUtil.drawRoundedRectWithGl(x, y, x + w, y + getHeight(), 4, new Color(255, 255, 255, 10).getRGB());
-        Gui.drawRect(x, y + getHeight() - 1, x + w, y + getHeight(), new Color(255, 255, 255, 30).getRGB());
-        GL11.glPushMatrix();
-        GL11.glScaled(0.5D, 0.5D, 0.5D);
-        // 文字（使用原版坐标）
-        Minecraft.getMinecraft().fontRendererObj.drawString(
-                this.property.getName().replace("-", " ") + ": " + ChatColors.formatColor(this.property.formatValue()),
-                (float) ((this.module.category.getX() + 4) * 2),
-                (float) ((this.module.category.getY() + this.offsetY + 5) * 2), -1, false);
-        GL11.glPopMatrix();
+        int w = module.category.getWidth() - 16;
+        int textY = y + (getHeight() - GuiText.height()) / 2;
+        RenderUtil.drawRoundedRectWithGl(x, y + 1, x + w, y + getHeight() - 1, 4, new Color(255, 255, 255, 14).getRGB());
+        GuiText.draw(trimText(this.property.getName().replace("-", " ") + ": " + ChatColors.formatColor(this.property.formatValue()), w - 4),
+                x + 2, textY, new Color(215, 218, 225).getRGB());
     }
     public void setComponentStartAt(int newOffsetY) {
         this.offsetY = newOffsetY;
     }
     @Override
     public int getHeight() {
-        return 12;
+        return Math.max(14, GuiText.height() + 5);
     }
     public void update(int mousePosX, int mousePosY) {
         this.y = this.module.category.getY() + this.offsetY;
@@ -53,7 +46,7 @@ public class TextComponent implements Component {
     }
     public void mouseDown(int x, int y, int button) {
         if (this.isHovered(x, y) && button == 0 && this.module.panelExpand) {
-            GuiInput.prompt(property.getName().replace("-", " "), property.getValue(), property::setValue, ClickGui.getInstance());
+            GuiInput.prompt(property.getName().replace("-", " "), property.getValue(), property::setValue, Minecraft.getMinecraft().currentScreen);
         }
     }
     @Override
@@ -61,8 +54,12 @@ public class TextComponent implements Component {
     @Override
     public void keyTyped(char chatTyped, int keyCode) {}
     public boolean isHovered(int x, int y) {
-        return x > this.x && x < this.x + this.module.category.getWidth() && y > this.y && y < this.y + 11;
+        return x > this.x + 6 && x < this.x + this.module.category.getWidth() - 6 && y > this.y && y < this.y + 11;
     }
+    private String trimText(String text, int maxWidth) {
+        return GuiText.trim(text, maxWidth);
+    }
+
     @Override
     public boolean isVisible() {
         return property.isVisible();

@@ -46,6 +46,7 @@ public class Velocity extends Module {
     private final BooleanProperty onlySprinting = new BooleanProperty("Only Sprinting", true, () -> mode.getValue() == 1 && reduceMode.getValue() == 0 && reduce.getValue());
     public final BooleanProperty smartTimes = new BooleanProperty("SmartTimes",true, () -> this.mode.getValue() == 1 && this.reduce.getValue() && reduceMode.getValue() == 0);
     public final IntProperty attackTimes = new IntProperty("Attack Times", 1, 1, 5, () -> this.mode.getValue() == 1 && this.reduce.getValue() && reduceMode.getValue() == 0 && !smartTimes.getValue());
+    public final BooleanProperty keepSprint = new BooleanProperty("KeepSprint",false, () -> this.mode.getValue() == 1 && this.reduce.getValue() && reduceMode.getValue() == 0);
     public final BooleanProperty testMode = new BooleanProperty("TestMode",false, () -> this.mode.getValue() == 1 && this.reduce.getValue() && reduceMode.getValue() == 0);
     private final IntProperty stopBlockHurtTime = new IntProperty("StopBlockHurtTime",2,0,10, () -> this.mode.getValue() == 1 && this.reduce.getValue() && reduceMode.getValue() == 0 && testMode.getValue());
 
@@ -282,7 +283,7 @@ public class Velocity extends Module {
                                             }
                                             mc.thePlayer.motionX *= 0.6D;
                                             mc.thePlayer.motionZ *= 0.6D;
-                                            mc.thePlayer.setSprinting(false);
+                                            if (!keepSprint.getValue()) mc.thePlayer.setSprinting(false);
                                         }
                                     } else {
                                         EventManager.call(new AttackEvent(targetA.entityHit));
@@ -294,7 +295,7 @@ public class Velocity extends Module {
                                         }
                                         mc.thePlayer.motionX *= 0.6D;
                                         mc.thePlayer.motionZ *= 0.6D;
-                                        mc.thePlayer.setSprinting(false);
+                                        if (!keepSprint.getValue()) mc.thePlayer.setSprinting(false);
                                     }
                                 }
                             }

@@ -2,8 +2,8 @@ package leader.ui.components;
 
 import leader.Leader;
 import leader.module.modules.render.HUD;
-import leader.ui.ClickGui;
 import leader.ui.Component;
+import leader.ui.GuiText;
 import leader.ui.callback.GuiInput;
 import leader.ui.dataset.Slider;
 import leader.util.RenderUtil;
@@ -35,27 +35,20 @@ public class SliderComponent implements Component {
     }
 
     public void draw(AtomicInteger offset) {
-        int trackX = this.parentModule.category.getX() + 4;
-        int trackY = this.parentModule.category.getY() + this.offsetY + 11;
-        int trackW = this.parentModule.category.getWidth() - 8;
-        int trackH = 4;
-        // 轨道背景
-        RenderUtil.drawRoundedRectWithGl(trackX, trackY, trackX + trackW, trackY + trackH, 2, -12302777);
-        int sliderStart = this.parentModule.category.getX() + 4;
-        int sliderEnd = this.parentModule.category.getX() + 4 + (int) this.sliderWidth;
-        if (sliderEnd - sliderStart > 84) {
-            sliderEnd = sliderStart + 84;
+        int trackX = this.parentModule.category.getX() + 10;
+        int trackY = this.parentModule.category.getY() + this.offsetY + getHeight() - 5;
+        int trackW = this.parentModule.category.getWidth() - 20;
+        int trackH = 2;
+        int accent = new Color(92, 169, 255).getRGB();
+        RenderUtil.drawRoundedRectWithGl(trackX, trackY, trackX + trackW, trackY + trackH, 1, new Color(255, 255, 255, 45).getRGB());
+        int sliderEnd = trackX + (int) Math.round(this.sliderWidth);
+        if (sliderEnd > trackX) {
+            RenderUtil.drawRoundedRectWithGl(trackX, trackY, sliderEnd, trackY + trackH, 1, accent);
         }
-        // 填充部分（动态颜色）
-        RenderUtil.drawRoundedRectWithGl(sliderStart, trackY, sliderEnd, trackY + trackH, 2,
-                ((HUD) Leader.moduleManager.modules.get(HUD.class)).getColor(System.currentTimeMillis(), offset.get()).getRGB());
-        GL11.glPushMatrix();
-        GL11.glScaled(0.5D, 0.5D, 0.5D);
-        Minecraft.getMinecraft().fontRendererObj.drawStringWithShadow(
-                this.slider.getName() + ": " + this.slider.getValueColorString(),
-                (float) ((int) ((float) (this.parentModule.category.getX() + 4) * 2.0F)),
-                (float) ((int) ((float) (this.parentModule.category.getY() + this.offsetY + 3) * 2.0F)), -1);
-        GL11.glPopMatrix();
+        int thumbX = Math.max(trackX, Math.min(trackX + trackW, sliderEnd));
+        RenderUtil.drawRoundedRectWithGl(thumbX - 2, trackY - 2, thumbX + 2, trackY + trackH + 2, 3, new Color(238, 241, 247).getRGB());
+        GuiText.draw(trimText(this.slider.getName() + ": " + this.slider.getValueColorString(), trackW - 2),
+                trackX, this.parentModule.category.getY() + this.offsetY + 2, new Color(205, 216, 235).getRGB());
     }
     public void setComponentStartAt(int newOffsetY) {
         this.offsetY = newOffsetY;
@@ -63,21 +56,23 @@ public class SliderComponent implements Component {
 
     @Override
     public int getHeight() {
-        return 16;
+        return Math.max(18, GuiText.height() + 9);
     }
 
     public void update(int mousePosX, int mousePosY) {
         this.y = this.parentModule.category.getY() + this.offsetY;
         this.x = this.parentModule.category.getX();
-        double d = Math.min(this.parentModule.category.getWidth() - 8, Math.max(0, mousePosX - this.x));
-        this.sliderWidth = (double) (this.parentModule.category.getWidth() - 8) *
+        int trackX = this.parentModule.category.getX() + 10;
+        int trackWidth = this.parentModule.category.getWidth() - 20;
+        double d = Math.min(trackWidth, Math.max(0, mousePosX - trackX));
+        this.sliderWidth = (double) trackWidth *
                 (this.slider.getInput() - this.slider.getMin()) /
                 (this.slider.getMax() - this.slider.getMin());
         if (this.dragging) {
             if (d == 0.0D) {
                 this.slider.setValue(this.slider.getMin());
             } else {
-                double rawValue = d / (double) (this.parentModule.category.getWidth() - 8)
+                double rawValue = d / (double) trackWidth
                         * (this.slider.getMax() - this.slider.getMin())
                         + this.slider.getMin();
                 double increment = this.slider.getIncrement();
@@ -108,7 +103,7 @@ public class SliderComponent implements Component {
 
     public void mouseDown(int x, int y, int button) {
         if (this.isTextHovered(x, y) && button == 0 && this.parentModule.panelExpand) {
-            GuiInput.prompt(slider.getName().replace("-", " "), slider.getValueString(), slider::setValueString, ClickGui.getInstance());
+            GuiInput.prompt(slider.getName().replace("-", " "), slider.getValueString(), slider::setValueString, Minecraft.getMinecraft().currentScreen);
             return;
         }
         if (this.isLeftHalfHovered(x, y) && this.parentModule.panelExpand) {
@@ -139,15 +134,19 @@ public class SliderComponent implements Component {
     public void keyTyped(char chatTyped, int keyCode) {}
 
     public boolean isTextHovered(int x, int y) {
-        return x > this.x && x < this.x + this.parentModule.category.getWidth() && y > this.y && y < this.y + 8;
+        return x > this.x + 7 && x < this.x + this.parentModule.category.getWidth() - 7 && y > this.y && y < this.y + 8;
     }
 
     public boolean isLeftHalfHovered(int x, int y) {
-        return x > this.x && x < this.x + this.parentModule.category.getWidth() / 2 + 1 && y > this.y + 8 && y < this.y + 16;
+        return x > this.x + 7 && x < this.x + this.parentModule.category.getWidth() / 2 + 1 && y > this.y + 8 && y < this.y + 17;
     }
 
     public boolean isRightHalfHovered(int x, int y) {
-        return x > this.x + this.parentModule.category.getWidth() / 2 && x < this.x + this.parentModule.category.getWidth() && y > this.y + 8 && y < this.y + 16;
+        return x > this.x + this.parentModule.category.getWidth() / 2 && x < this.x + this.parentModule.category.getWidth() - 7 && y > this.y + 8 && y < this.y + 17;
+    }
+
+    private String trimText(String text, int maxWidth) {
+        return GuiText.trim(text, maxWidth);
     }
 
     @Override

@@ -6,7 +6,6 @@ import leader.ui.components.CategoryComponent;
 import leader.ui.components.ModuleComponent;
 import leader.util.RenderUtil;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
@@ -22,21 +21,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class BookClickGuiScreen extends GuiScreen {
 
-    private static final int LEFT_PANEL_WIDTH = 70;
-    private static final int MID_PANEL_WIDTH = 180;
-    private static final int RIGHT_PANEL_WIDTH = 150;
-    private static final int PANEL_HEIGHT = 240;
-    private static final int TITLE_BAR_HEIGHT = 15;
+    private static final int LEFT_PANEL_WIDTH = 86;
+    private static final int MID_PANEL_WIDTH = 196;
+    private static final int RIGHT_PANEL_WIDTH = 164;
+    private static final int PANEL_HEIGHT = 250;
+    private static final int TITLE_BAR_HEIGHT = 16;
     private static final int ITEM_HEIGHT = 18;
-    private static final int PANEL_GAP = 10;
+    private static final int PANEL_GAP = 6;
     private static final int WINDOW_PADDING = 8;
 
     private int windowX, windowY;
     private boolean draggingWindow;
+    private boolean windowPositionInitialized;
     private int dragOffsetX, dragOffsetY;
 
     private final Minecraft mc = Minecraft.getMinecraft();
-    private final FontRenderer fr = mc.fontRendererObj;
 
     private final ArrayList<CategoryComponent> categoryList;
     private int selectedCategory = 0;
@@ -48,15 +47,15 @@ public class BookClickGuiScreen extends GuiScreen {
     private int settingScroll = 0;
     private double settingScrollSmooth = 0;
 
-    private static final Color ACCENT_COLOR = new Color(75, 160, 255);
+    private static final Color ACCENT_COLOR = new Color(86, 157, 255);
     private static final int COLOR_ACCENT = ACCENT_COLOR.getRGB();
     private static final int COLOR_WHITE = new Color(235, 235, 245).getRGB();
     private static final int COLOR_GRAY = new Color(145, 145, 160).getRGB();
-    private static final int COLOR_BG_OVERLAY = new Color(8, 8, 22, 160).getRGB();
-    private static final int COLOR_WINDOW_BG = new Color(20, 20, 32, 245).getRGB();
-    private static final int COLOR_TITLE_BG = new Color(38, 38, 56, 245).getRGB();
-    private static final int COLOR_PANEL_BG = new Color(26, 26, 40, 235).getRGB();
-    private static final int COLOR_SHADOW = new Color(0, 0, 0, 85).getRGB();
+    private static final int COLOR_BG_OVERLAY = new Color(8, 10, 16, 178).getRGB();
+    private static final int COLOR_WINDOW_BG = new Color(30, 33, 41, 248).getRGB();
+    private static final int COLOR_TITLE_BG = new Color(38, 42, 52, 250).getRGB();
+    private static final int COLOR_PANEL_BG = new Color(35, 39, 48, 246).getRGB();
+    private static final int COLOR_SHADOW = new Color(0, 0, 0, 78).getRGB();
 
     public BookClickGuiScreen() {
         Map<String, List<Module>> categoryMap = new LinkedHashMap<>();
@@ -94,10 +93,13 @@ public class BookClickGuiScreen extends GuiScreen {
 
     @Override
     public void initGui() {
-        windowX = (this.width - getWindowWidth()) / 2;
-        windowY = (this.height - getWindowHeight()) / 2;
-        if (windowX < 0) windowX = 5;
-        if (windowY < 0) windowY = 5;
+        if (!windowPositionInitialized) {
+            windowX = (this.width - getWindowWidth()) / 2;
+            windowY = (this.height - getWindowHeight()) / 2;
+            windowPositionInitialized = true;
+        }
+        windowX = Math.max(5, Math.min(windowX, Math.max(5, this.width - getWindowWidth() - 5)));
+        windowY = Math.max(5, Math.min(windowY, Math.max(5, this.height - getWindowHeight() - 5)));
         animatedCenterIdx = centerModuleIdx;
     }
 
@@ -143,18 +145,20 @@ public class BookClickGuiScreen extends GuiScreen {
         int w = getWindowWidth();
         int h = getWindowHeight();
 
-        drawRoundedRectSafe(x + 4, y + 4, x + w + 4, y + h + 4, 7, new Color(0, 0, 0, 50).getRGB());
         drawRoundedRectSafe(x + 2, y + 2, x + w + 2, y + h + 2, 7, COLOR_SHADOW);
         drawRoundedRectSafe(x, y, x + w, y + h, 7, COLOR_WINDOW_BG);
 
         drawRoundedRectSafe(x, y, x + w, y + TITLE_BAR_HEIGHT + WINDOW_PADDING, 7, COLOR_TITLE_BG);
         RenderUtil.enableRenderState();
-        Gui.drawRect(x, y + TITLE_BAR_HEIGHT + WINDOW_PADDING - 7, x + w, y + TITLE_BAR_HEIGHT + WINDOW_PADDING, COLOR_TITLE_BG);
+        Gui.drawRect(x + 8, y + TITLE_BAR_HEIGHT + WINDOW_PADDING - 1, x + w - 8, y + TITLE_BAR_HEIGHT + WINDOW_PADDING, new Color(255, 255, 255, 22).getRGB());
         RenderUtil.disableRenderState();
         GlStateManager.disableDepth();
         GlStateManager.enableAlpha();
 
-        drawCenteredString(fr, "\u00bb Leader Lite", x + w / 2, y + WINDOW_PADDING / 2 + 2, COLOR_WHITE);
+        String titleRight = "Click GUI";
+        float titleY = y + WINDOW_PADDING / 2.0F + 3.0F;
+        GuiText.drawShadow("Leader Lite", x + 9, titleY, COLOR_WHITE);
+        GuiText.draw(titleRight, x + w - 9 - GuiText.width(titleRight), titleY, COLOR_GRAY);
 
         int contentX = x + WINDOW_PADDING;
         int contentY = y + WINDOW_PADDING + TITLE_BAR_HEIGHT;
@@ -173,112 +177,69 @@ public class BookClickGuiScreen extends GuiScreen {
 
     private void drawLeftPanel(int x, int y, int mouseX, int mouseY) {
         drawRoundedRectSafe(x, y, x + LEFT_PANEL_WIDTH, y + PANEL_HEIGHT, 5, COLOR_PANEL_BG);
-        drawCenteredString(fr, "Categories", x + LEFT_PANEL_WIDTH / 2, y + 5, COLOR_WHITE);
+        GuiText.draw("Categories", x + 8, y + 6, COLOR_WHITE);
 
-        int itemY = y + 18;
+        int itemY = y + 19;
         for (int i = 0; i < categoryList.size(); i++) {
             String name = categoryList.get(i).getName();
             boolean hovered = mouseX >= x && mouseX <= x + LEFT_PANEL_WIDTH && mouseY >= itemY && mouseY < itemY + ITEM_HEIGHT;
             boolean selected = (i == selectedCategory);
 
             if (selected) {
-                drawRoundedRectSafe(x + 2, itemY, x + LEFT_PANEL_WIDTH - 2, itemY + ITEM_HEIGHT, 4, new Color(75, 160, 255, 80).getRGB());
-                drawRoundedRectSafe(x + 3, itemY + 2, x + 5, itemY + ITEM_HEIGHT - 2, 2, COLOR_ACCENT);
+                drawRoundedRectSafe(x + 4, itemY, x + LEFT_PANEL_WIDTH - 4, itemY + ITEM_HEIGHT, 4, new Color(86, 157, 255, 48).getRGB());
             } else if (hovered) {
-                drawRoundedRectSafe(x + 2, itemY, x + LEFT_PANEL_WIDTH - 2, itemY + ITEM_HEIGHT, 4, new Color(255, 255, 255, 25).getRGB());
+                drawRoundedRectSafe(x + 4, itemY, x + LEFT_PANEL_WIDTH - 4, itemY + ITEM_HEIGHT, 4, new Color(255, 255, 255, 12).getRGB());
             }
 
             int color = selected ? COLOR_WHITE : (hovered ? new Color(200, 200, 215).getRGB() : COLOR_GRAY);
-            fr.drawStringWithShadow(name, x + 8, itemY + (float) (ITEM_HEIGHT - fr.FONT_HEIGHT) / 2, color);
+            GuiText.draw(trimText(name, LEFT_PANEL_WIDTH - 16), x + 8, itemY + (float) (ITEM_HEIGHT - GuiText.height()) / 2, color);
             itemY += ITEM_HEIGHT;
         }
     }
 
     private void drawMiddlePanel(int x, int y, int mouseX, int mouseY) {
         drawRoundedRectSafe(x, y, x + MID_PANEL_WIDTH, y + PANEL_HEIGHT, 5, COLOR_PANEL_BG);
-        drawCenteredString(fr, "Modules", x + MID_PANEL_WIDTH / 2, y + 5, COLOR_WHITE);
+        GuiText.draw("Modules", x + 8, y + 6, COLOR_WHITE);
 
         CategoryComponent cat = categoryList.get(selectedCategory);
         ArrayList<Component> modules = cat.getModules();
-        if (modules == null || modules.isEmpty()) return;
+        if (modules == null || modules.isEmpty()) {
+            GuiText.draw("No modules", x + 8, y + 25, COLOR_GRAY);
+            return;
+        }
 
-        int centerX = x + MID_PANEL_WIDTH / 2;
-        int baseY = y + PANEL_HEIGHT / 2 - ITEM_HEIGHT / 2;
-
-        float radiusX = 80f;
-        float radiusY = 30f;
-        float angleFactor = 1.1f;
+        int listTop = y + 20;
+        int listBottom = y + PANEL_HEIGHT - 7;
+        int visibleRows = Math.max(1, (listBottom - listTop) / ITEM_HEIGHT);
+        int firstIndex = Math.max(0, Math.min(centerModuleIdx - visibleRows / 2, modules.size() - visibleRows));
 
         ScaledResolution sr = new ScaledResolution(mc);
         double scale = sr.getScaleFactor();
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glScissor((int) (x * scale), (int) ((sr.getScaledHeight() - (y + PANEL_HEIGHT)) * scale),
-                (int) (MID_PANEL_WIDTH * scale), (int) (PANEL_HEIGHT * scale));
+        GL11.glScissor((int) (x * scale), (int) ((sr.getScaledHeight() - listBottom) * scale),
+                (int) (MID_PANEL_WIDTH * scale), (int) ((listBottom - listTop) * scale));
 
-        List<ModuleComponent> drawList = new ArrayList<>();
-        for (int i = 0; i < modules.size(); i++) {
-            float diff = i - animatedCenterIdx;
-            if (Math.abs(diff) > 2.2f) continue;
-            drawList.add((ModuleComponent) modules.get(i));
-        }
-        drawList.sort((a, b) -> {
-            float dA = modules.indexOf(a) - animatedCenterIdx;
-            float dB = modules.indexOf(b) - animatedCenterIdx;
-            return Float.compare(Math.abs(dB), Math.abs(dA));
-        });
-
-        for (ModuleComponent modComp : drawList) {
-            int i = modules.indexOf(modComp);
-            float diff = i - animatedCenterIdx;
-
-            float angle = diff * angleFactor;
-            float drawX = centerX + (float) (Math.sin(angle) * radiusX);
-            float drawY = baseY + (float) ((1 - Math.cos(angle)) * radiusY);
-
-            String name = modComp.mod.getName();
+        for (int row = 0; row < visibleRows && firstIndex + row < modules.size(); row++) {
+            int index = firstIndex + row;
+            int rowY = listTop + row * ITEM_HEIGHT;
+            ModuleComponent modComp = (ModuleComponent) modules.get(index);
+            boolean selected = index == selectedModule;
             boolean enabled = modComp.mod.isEnabled();
-            boolean isSelected = (i == selectedModule);
+            boolean hovered = mouseX >= x + 4 && mouseX <= x + MID_PANEL_WIDTH - 4
+                    && mouseY >= rowY && mouseY < rowY + ITEM_HEIGHT;
 
-            float alphaFactor = 1.0f - Math.abs(diff) * 0.6f;
-            if (alphaFactor < 0.4f) alphaFactor = 0.4f;
-            if (Math.abs(diff) < 0.2f) alphaFactor = 1.0f;
-
-            int alphaByte = (int) (alphaFactor * 255);
-
-            int textWidth = fr.getStringWidth(name);
-            int bgWidth = Math.max(textWidth + 20, 90);
-            bgWidth = Math.min(bgWidth, MID_PANEL_WIDTH - 8);
-            int bgLeft = (int) (drawX - bgWidth / 2f);
-            int bgRight = bgLeft + bgWidth;
-            int bgTop = (int) drawY;
-            int bgBottom = bgTop + ITEM_HEIGHT;
-
-            drawRoundedRectSafe(bgLeft + 1, bgTop + 1, bgRight + 1, bgBottom + 1, 5, new Color(0, 0, 0, (int)(alphaByte * 0.35)).getRGB());
-
-            int bgColor;
-            if (isSelected) {
-                bgColor = new Color(75, 160, 255, alphaByte).getRGB();
-            } else if (enabled) {
-                bgColor = new Color(220, 220, 235, alphaByte).getRGB();
-            } else {
-                bgColor = new Color(100, 100, 115, alphaByte).getRGB();
+            if (selected) {
+                drawRoundedRectSafe(x + 4, rowY, x + MID_PANEL_WIDTH - 4, rowY + ITEM_HEIGHT, 4, new Color(86, 157, 255, 54).getRGB());
+            } else if (hovered) {
+                drawRoundedRectSafe(x + 4, rowY, x + MID_PANEL_WIDTH - 4, rowY + ITEM_HEIGHT, 4, new Color(255, 255, 255, 12).getRGB());
             }
-            drawRoundedRectSafe(bgLeft, bgTop, bgRight, bgBottom, 5, bgColor);
 
-            GlStateManager.disableDepth();
-            GlStateManager.enableBlend();
-            GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
-
-            int textColor;
-            if (isSelected) {
-                textColor = COLOR_WHITE;
-            } else if (enabled) {
-                textColor = new Color(240, 240, 250).getRGB();
-            } else {
-                textColor = new Color(160, 160, 170).getRGB();
+            if (enabled) {
+                drawRoundedRectSafe(x + 8, rowY + 6, x + 11, rowY + 12, 2, COLOR_ACCENT);
             }
-            int finalTextColor = applyAlpha(textColor, alphaByte);
-            fr.drawString(name, drawX - textWidth / 2f, drawY + (ITEM_HEIGHT - fr.FONT_HEIGHT) / 2f, finalTextColor, false);
+            int textColor = selected ? COLOR_WHITE : (enabled ? new Color(210, 220, 235).getRGB() : COLOR_GRAY);
+            GuiText.draw(trimText(modComp.mod.getName(), MID_PANEL_WIDTH - 30), x + 17,
+                    rowY + (float) (ITEM_HEIGHT - GuiText.height()) / 2, textColor);
         }
 
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
@@ -291,7 +252,8 @@ public class BookClickGuiScreen extends GuiScreen {
         if (categoryList.isEmpty()) return;
         CategoryComponent cat = categoryList.get(selectedCategory);
         if (cat.getModules().isEmpty()) {
-            drawCenteredString(fr, "No modules", x + RIGHT_PANEL_WIDTH / 2, y + PANEL_HEIGHT / 2, COLOR_GRAY);
+            GuiText.drawCentered("No modules", x + RIGHT_PANEL_WIDTH / 2.0F,
+                    y + (PANEL_HEIGHT - GuiText.height()) / 2.0F, COLOR_GRAY);
             return;
         }
         if (selectedModule >= cat.getModules().size())
@@ -300,12 +262,16 @@ public class BookClickGuiScreen extends GuiScreen {
         ModuleComponent modComp = (ModuleComponent) cat.getModules().get(selectedModule);
         String modName = modComp.mod.getName();
         boolean isEnabled = modComp.mod.isEnabled();
-        drawCenteredString(fr, modName, x + RIGHT_PANEL_WIDTH / 2, y + 8, isEnabled ? COLOR_WHITE : COLOR_GRAY);
-        Gui.drawRect(x + 6, y + 19, x + RIGHT_PANEL_WIDTH - 6, y + 20, new Color(255, 255, 255, 30).getRGB());
+        String stateText = isEnabled ? "Enabled" : "Disabled";
+        int stateX = x + RIGHT_PANEL_WIDTH - 8 - GuiText.width(stateText);
+        int nameWidth = Math.max(0, stateX - (x + 8) - 6);
+        GuiText.draw(trimText(modName, nameWidth), x + 8, y + 6, isEnabled ? COLOR_WHITE : COLOR_GRAY);
+        GuiText.draw(stateText, stateX, y + 6, isEnabled ? COLOR_ACCENT : COLOR_GRAY);
+        Gui.drawRect(x + 8, y + 18, x + RIGHT_PANEL_WIDTH - 8, y + 19, new Color(255, 255, 255, 22).getRGB());
 
         ArrayList<Component> settings = modComp.getSettings();
         if (settings == null || settings.isEmpty()) {
-            fr.drawStringWithShadow("No settings", x + 5, y + 25, COLOR_GRAY);
+            GuiText.draw("No settings", x + 8, y + 25, COLOR_GRAY);
             return;
         }
 
@@ -321,11 +287,13 @@ public class BookClickGuiScreen extends GuiScreen {
 
         int origCatX = cat.getX();
         int origCatY = cat.getY();
+        int origCatWidth = cat.getWidth();
         int origOff = modComp.offsetY;
         boolean origExpand = modComp.panelExpand;
 
-        cat.setX(x + 4);
+        cat.setX(x + 6);
         cat.setY(contentStartY - (int) settingScrollSmooth);
+        cat.setWidth(RIGHT_PANEL_WIDTH - 12);
         modComp.offsetY = 0;
         modComp.panelExpand = true;
 
@@ -358,6 +326,7 @@ public class BookClickGuiScreen extends GuiScreen {
 
         cat.setX(origCatX);
         cat.setY(origCatY);
+        cat.setWidth(origCatWidth);
         modComp.offsetY = origOff;
         modComp.panelExpand = origExpand;
         yOff = 0;
@@ -370,7 +339,7 @@ public class BookClickGuiScreen extends GuiScreen {
             float barX = x + RIGHT_PANEL_WIDTH - 6;
             float barH = (float) contentAreaHeight * contentAreaHeight / totalHeight;
             float barY = contentStartY + (float) (settingScrollSmooth * contentAreaHeight / totalHeight);
-            drawRoundedRectSafe(barX, barY, barX + 3, barY + barH, 1, new Color(75, 160, 255, 180).getRGB());
+            drawRoundedRectSafe(barX, barY, barX + 3, barY + barH, 2, new Color(255, 255, 255, 105).getRGB());
         }
     }
 
@@ -383,6 +352,8 @@ public class BookClickGuiScreen extends GuiScreen {
             draggingWindow = true;
             return;
         }
+
+        if (categoryList.isEmpty()) return;
 
         int contentX = windowX + WINDOW_PADDING;
         int contentY = windowY + WINDOW_PADDING + TITLE_BAR_HEIGHT;
@@ -410,38 +381,22 @@ public class BookClickGuiScreen extends GuiScreen {
             ArrayList<Component> modules = cat.getModules();
             if (modules.isEmpty()) return;
 
-            int centerX = midX + MID_PANEL_WIDTH / 2;
-            int baseY = contentY + PANEL_HEIGHT / 2 - ITEM_HEIGHT / 2;
-            float radiusX = 80f;
-            float radiusY = 30f;
-            float angleFactor = 1.1f;
+            int listTop = contentY + 20;
+            int listBottom = contentY + PANEL_HEIGHT - 7;
+            int visibleRows = Math.max(1, (listBottom - listTop) / ITEM_HEIGHT);
+            int firstIndex = Math.max(0, Math.min(centerModuleIdx - visibleRows / 2, modules.size() - visibleRows));
+            for (int row = 0; row < visibleRows && firstIndex + row < modules.size(); row++) {
+                int rowY = listTop + row * ITEM_HEIGHT;
+                if (mouseY < rowY || mouseY >= rowY + ITEM_HEIGHT) continue;
 
-            for (int i = 0; i < modules.size(); i++) {
-                float diff = i - animatedCenterIdx;
-                if (Math.abs(diff) > 2.2f) continue;
-
-                float angle = diff * angleFactor;
-                float drawX = centerX + (float) (Math.sin(angle) * radiusX);
-                float drawY = baseY + (float) ((1 - Math.cos(angle)) * radiusY);
-
-                ModuleComponent modComp = (ModuleComponent) modules.get(i);
-                String name = modComp.mod.getName();
-                int textWidth = fr.getStringWidth(name);
-                int bgWidth = Math.max(textWidth + 20, 90);
-                bgWidth = Math.min(bgWidth, MID_PANEL_WIDTH - 8);
-                float left = drawX - bgWidth / 2f;
-                float right = left + bgWidth;
-
-                if (mouseX >= left && mouseX <= right && mouseY >= drawY && mouseY <= drawY + ITEM_HEIGHT) {
-                    if (button == 0) {
-                        modComp.mod.toggle();
-                    }
-                    selectedModule = i;
-                    centerModuleIdx = i;
-                    settingScroll = 0;
-                    settingScrollSmooth = 0;
-                    return;
-                }
+                int index = firstIndex + row;
+                ModuleComponent modComp = (ModuleComponent) modules.get(index);
+                if (button == 0) modComp.mod.toggle();
+                selectedModule = index;
+                centerModuleIdx = index;
+                settingScroll = 0;
+                settingScrollSmooth = 0;
+                return;
             }
             return;
         }
@@ -455,12 +410,14 @@ public class BookClickGuiScreen extends GuiScreen {
 
                 int origCatX = cat.getX();
                 int origCatY = cat.getY();
+                int origCatWidth = cat.getWidth();
                 int origOff = modComp.offsetY;
                 boolean origExpand = modComp.panelExpand;
 
                 int contentStartY = contentY + 20;
-                cat.setX(rightX + 4);
+                cat.setX(rightX + 6);
                 cat.setY(contentStartY - (int) settingScrollSmooth);
+                cat.setWidth(RIGHT_PANEL_WIDTH - 12);
                 modComp.offsetY = 0;
                 modComp.panelExpand = true;
 
@@ -480,6 +437,7 @@ public class BookClickGuiScreen extends GuiScreen {
 
                 cat.setX(origCatX);
                 cat.setY(origCatY);
+                cat.setWidth(origCatWidth);
                 modComp.offsetY = origOff;
                 modComp.panelExpand = origExpand;
                 yOff = 0;
@@ -494,6 +452,7 @@ public class BookClickGuiScreen extends GuiScreen {
     @Override
     public void mouseReleased(int mouseX, int mouseY, int button) {
         draggingWindow = false;
+        if (categoryList.isEmpty()) return;
         int contentX = windowX + WINDOW_PADDING;
         int contentY = windowY + WINDOW_PADDING + TITLE_BAR_HEIGHT;
         int rightX = contentX + LEFT_PANEL_WIDTH + MID_PANEL_WIDTH + PANEL_GAP * 2;
@@ -507,12 +466,14 @@ public class BookClickGuiScreen extends GuiScreen {
 
                 int origCatX = cat.getX();
                 int origCatY = cat.getY();
+                int origCatWidth = cat.getWidth();
                 int origOff = modComp.offsetY;
                 boolean origExpand = modComp.panelExpand;
 
                 int contentStartY = contentY + 20;
-                cat.setX(rightX + 4);
+                cat.setX(rightX + 6);
                 cat.setY(contentStartY - (int) settingScrollSmooth);
+                cat.setWidth(RIGHT_PANEL_WIDTH - 12);
                 modComp.offsetY = 0;
                 modComp.panelExpand = true;
 
@@ -530,6 +491,7 @@ public class BookClickGuiScreen extends GuiScreen {
 
                 cat.setX(origCatX);
                 cat.setY(origCatY);
+                cat.setWidth(origCatWidth);
                 modComp.offsetY = origOff;
                 modComp.panelExpand = origExpand;
                 yOff = 0;
@@ -613,14 +575,7 @@ public class BookClickGuiScreen extends GuiScreen {
     @Override
     public boolean doesGuiPauseGame() { return false; }
 
-    private int applyAlpha(int color, int alpha) {
-        int r = (color >> 16) & 0xFF;
-        int g = (color >> 8) & 0xFF;
-        int b = color & 0xFF;
-        return (Math.max(0, Math.min(alpha, 255)) << 24) | (r << 16) | (g << 8) | b;
-    }
-
-    public void drawCenteredString(FontRenderer fr, String text, int x, int y, int color) {
-        fr.drawStringWithShadow(text, x - fr.getStringWidth(text) / 2f, y, color);
+    private String trimText(String text, int maxWidth) {
+        return GuiText.trim(text, maxWidth);
     }
 }

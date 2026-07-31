@@ -4,6 +4,7 @@ import leader.Leader;
 import leader.module.modules.render.GuiModule;
 import leader.module.modules.render.HUD;
 import leader.ui.Component;
+import leader.ui.GuiText;
 import leader.ui.dataset.BindStage;
 import leader.util.KeyBindUtil;
 import leader.util.RenderUtil;
@@ -29,33 +30,17 @@ public class BindComponent implements Component {
     }
 
     public void draw(AtomicInteger offset) {
-        int x = parentModule.category.getX() + 4;
+        int x = parentModule.category.getX() + 8;
         int y = parentModule.category.getY() + offsetY;
-        int w = parentModule.category.getWidth() - 8;
-        int h = getHeight();
+        int w = parentModule.category.getWidth() - 16;
+        int h = getHeight() - 2;
+        int color = isBinding ? new Color(70, 132, 220, 210).getRGB() : new Color(255, 255, 255, 10).getRGB();
 
-        // 背景（玻璃质感，绑定状态呼吸红光）
-        if (isBinding) {
-            float pulse = (float) (Math.sin(System.currentTimeMillis() / 200.0) * 0.5 + 0.5);
-            int red = (int) (180 + 75 * pulse);
-            RenderUtil.drawRoundedRectWithGl(x, y, x + w, y + h, 5, new Color(red, 40, 40, 180).getRGB());
-        } else {
-            RenderUtil.drawRoundedRectWithGl(x, y, x + w, y + h, 5, new Color(255, 255, 255, 15).getRGB());
-        }
-
-        GL11.glPushMatrix();
-        GL11.glScaled(0.5D, 0.5D, 0.5D);
-        String displayText = this.isBinding ? BindStage.binding : BindStage.bind + ": " + KeyBindUtil.getKeyName(this.parentModule.mod.getKey());
-        // 文字坐标相对于背景左边缘偏移 2 像素（原版为 (category.getX()+4)*2，即左边缘 x+4，这里保持相同）
-        this.renderText(displayText, ((HUD) Leader.moduleManager.modules.get(HUD.class)).getColor(System.currentTimeMillis(), offset.get()).getRGB());
-        GL11.glPopMatrix();
-    }
-
-    private void renderText(String s, int color) {
-        // 原版坐标：(category.getX()+4)*2, (category.getY()+offsetY+3)*2
-        Minecraft.getMinecraft().fontRendererObj.drawStringWithShadow(s,
-                (float) ((this.parentModule.category.getX() + 4) * 2),
-                (float) ((this.parentModule.category.getY() + this.offsetY + 3) * 2), color);
+        RenderUtil.drawRoundedRectWithGl(x, y + 1, x + w, y + h, 4, color);
+        String displayText = this.isBinding ? "Press a key" : "Bind · " + KeyBindUtil.getKeyName(this.parentModule.mod.getKey());
+        displayText = trimText(displayText, Math.max(0, w - 4));
+        GuiText.draw(displayText, x + 2, y + (getHeight() - GuiText.height()) / 2,
+                isBinding ? 0xFFFFFFFF : new Color(196, 208, 228).getRGB());
     }
 
     @Override
@@ -107,11 +92,15 @@ public class BindComponent implements Component {
     }
 
     public boolean isHovered(int x, int y) {
-        return x > this.x && x < this.x + this.parentModule.category.getWidth() && y > this.y - 1 && y < this.y + 12;
+        return x > this.x + 8 && x < this.x + this.parentModule.category.getWidth() - 8 && y > this.y && y < this.y + getHeight();
     }
 
     public int getHeight() {
-        return 12;
+        return Math.max(16, GuiText.height() + 7);
+    }
+
+    private String trimText(String text, int maxWidth) {
+        return GuiText.trim(text, maxWidth);
     }
 
     @Override

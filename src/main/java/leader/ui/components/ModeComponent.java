@@ -3,6 +3,7 @@ package leader.ui.components;
 import leader.enums.ChatColors;
 import leader.property.properties.ModeProperty;
 import leader.ui.Component;
+import leader.ui.GuiText;
 import leader.util.RenderUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -27,28 +28,15 @@ public class ModeComponent implements Component {
     }
 
     public void draw(AtomicInteger offset) {
-        int x = parentModule.category.getX() + 4;
+        int x = parentModule.category.getX() + 8;
         int y = parentModule.category.getY() + offsetY;
-        int w = parentModule.category.getWidth() - 8;
+        int w = parentModule.category.getWidth() - 16;
+        int textY = y + (getHeight() - GuiText.height()) / 2;
+        RenderUtil.drawRoundedRectWithGl(x, y + 1, x + w, y + getHeight() - 1, 4, new Color(255, 255, 255, 14).getRGB());
 
-        // 背景
-        RenderUtil.drawRoundedRectWithGl(x, y + 1, x + w, y + getHeight() - 1, 5, new Color(0, 0, 0, 50).getRGB());
-
-        GL11.glPushMatrix();
-        GL11.glScaled(0.5D, 0.5D, 0.5D);
-        String mode = this.property.getModeString();
-        mode = mode.replace("_", " ");
-        int bruhWidth = (int) (Minecraft.getMinecraft().fontRendererObj.getStringWidth(this.property.getName() + ": ") * 0.5);
-        // 完全使用原版坐标和颜色
-        Minecraft.getMinecraft().fontRendererObj.drawString(
-                this.property.getName() + ": ",
-                (float) ((this.parentModule.category.getX() + 4) * 2),
-                (float) ((this.parentModule.category.getY() + this.offsetY + 4) * 2), 0xffffffff, true);
-        Minecraft.getMinecraft().fontRendererObj.drawString(
-                ChatColors.formatColor("&9" + mode.substring(0, 1).toUpperCase() + mode.substring(1).toLowerCase()),
-                (float) ((this.parentModule.category.getX() + 4 + bruhWidth) * 2),
-                (float) ((this.parentModule.category.getY() + this.offsetY + 4) * 2), -1, true);
-        GL11.glPopMatrix();
+        String mode = this.property.getModeString().replace("_", " ");
+        String text = this.property.getName() + ": " + mode;
+        GuiText.draw(trimText(text, w - 4), x + 2, textY, new Color(215, 218, 225).getRGB());
     }
 
     public void update(int mousePosX, int mousePosY) {
@@ -62,7 +50,7 @@ public class ModeComponent implements Component {
 
     @Override
     public int getHeight() {
-        return 12;
+        return Math.max(14, GuiText.height() + 5);
     }
 
     public void mouseDown(int x, int y, int button) {
@@ -82,7 +70,11 @@ public class ModeComponent implements Component {
     public void keyTyped(char chatTyped, int keyCode) {}
 
     private boolean isHovered(int x, int y) {
-        return x > this.x && x < this.x + this.parentModule.category.getWidth() && y > this.y && y < this.y + 11;
+        return x > this.x + 6 && x < this.x + this.parentModule.category.getWidth() - 6 && y > this.y && y < this.y + 11;
+    }
+
+    private String trimText(String text, int maxWidth) {
+        return GuiText.trim(text, maxWidth);
     }
 
     @Override

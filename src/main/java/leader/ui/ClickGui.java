@@ -5,6 +5,7 @@ import com.google.gson.JsonParser;
 import leader.Leader;
 import leader.module.Module;
 import leader.ui.components.CategoryComponent;
+import leader.ui.components.ModuleComponent;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.renderer.GlStateManager;
@@ -74,20 +75,23 @@ public class ClickGui extends GuiScreen {
     public static ClickGui getInstance() {
         return instance;
     }
+
+    public static void setInstance(ClickGui screen) {
+        instance = screen;
+    }
     @Override
     public void initGui() {
         super.initGui();
     }
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        // 渐变背景
         drawGradientBackground();
-        // 底部信息
-        mc.fontRendererObj.drawStringWithShadow("Leader " + Leader.version, 4, this.height - 3 - mc.fontRendererObj.FONT_HEIGHT * 2, new Color(60, 162, 253).getRGB());
-        mc.fontRendererObj.drawStringWithShadow("dev, woshijiejue", 4, this.height - 3 - mc.fontRendererObj.FONT_HEIGHT, new Color(60, 162, 253).getRGB());
-        // 渲染所有分类
+        int fontHeight = mc.fontRendererObj.FONT_HEIGHT;
+        mc.fontRendererObj.drawString("Leader " + Leader.version, 6, this.height - 8 - fontHeight * 2, new Color(185, 195, 210).getRGB(), false);
+        mc.fontRendererObj.drawString("Leader Lite", 6, this.height - 5 - fontHeight, new Color(120, 165, 235).getRGB(), false);
         for (CategoryComponent category : categoryList) {
-            category.render(this.fontRendererObj);
+            category.layoutModules();
+            category.render();
             category.handleDrag(mouseX, mouseY);
             for (Component module : category.getModules()) {
                 module.update(mouseX, mouseY);
@@ -136,9 +140,13 @@ public class ClickGui extends GuiScreen {
             if (category.isHovered(x, y) && mouseButton == 0) {
                 category.setPin(!category.isPin());
             }
-            if (category.isOpened() && !category.getModules().isEmpty()) {
+            if (category.isInsideContent(x, y) && !category.getModules().isEmpty()) {
+                category.layoutModules();
                 for (Component c : category.getModules()) {
-                    c.mouseDown(x, y, mouseButton);
+                    if (((ModuleComponent) c).contains(x, y)) {
+                        c.mouseDown(x, y, mouseButton);
+                        break;
+                    }
                 }
             }
         }

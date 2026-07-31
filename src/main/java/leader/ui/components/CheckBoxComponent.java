@@ -3,6 +3,7 @@ package leader.ui.components;
 import leader.enums.ChatColors;
 import leader.property.properties.BooleanProperty;
 import leader.ui.Component;
+import leader.ui.GuiText;
 import leader.util.RenderUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -27,21 +28,13 @@ public class CheckBoxComponent implements Component {
     }
 
     public void draw(AtomicInteger offset) {
-        int boxX = module.category.getX() + 4;
-        int boxY = module.category.getY() + offsetY + 2;
-        int boxSize = 8;
-
-        // 背景
-        RenderUtil.drawRoundedRectWithGl(boxX - 1, boxY - 1, module.category.getX() + module.category.getWidth() - 3, boxY + boxSize + 1, 5, new Color(0,0,0,40).getRGB());
-        GL11.glPushMatrix();
-        GL11.glScaled(0.5D, 0.5D, 0.5D);
-        // 文字绘制使用原有位置
-        Minecraft.getMinecraft().fontRendererObj.drawString(
-                this.property.getName().replace("-", " ") + ": " + ChatColors.formatColor(this.property.formatValue()),
-                (float) ((this.module.category.getX() + 4) * 2),   // 原坐标
-                (float) ((this.module.category.getY() + this.offsetY + 5) * 2), // 原坐标
-                -1, false);
-        GL11.glPopMatrix();
+        int rowX = module.category.getX() + 8;
+        int rowY = module.category.getY() + offsetY;
+        int rowW = module.category.getWidth() - 16;
+        int textY = rowY + (getHeight() - GuiText.height()) / 2;
+        RenderUtil.drawRoundedRectWithGl(rowX, rowY + 1, rowX + rowW, rowY + getHeight() - 1, 4, new Color(255, 255, 255, 14).getRGB());
+        GuiText.draw(trimText(this.property.getName().replace("-", " ") + ": " + ChatColors.formatColor(this.property.formatValue()), rowW - 4),
+                rowX + 2, textY, new Color(215, 218, 225).getRGB());
     }
 
     public void setComponentStartAt(int newOffsetY) {
@@ -50,7 +43,7 @@ public class CheckBoxComponent implements Component {
 
     @Override
     public int getHeight() {
-        return 12;
+        return Math.max(14, GuiText.height() + 5);
     }
 
     public void update(int mousePosX, int mousePosY) {
@@ -71,7 +64,11 @@ public class CheckBoxComponent implements Component {
     public void keyTyped(char chatTyped, int keyCode) {}
 
     public boolean isHovered(int x, int y) {
-        return x > this.x && x < this.x + this.module.category.getWidth() && y > this.y && y < this.y + 11;
+        return x > this.x + 6 && x < this.x + this.module.category.getWidth() - 6 && y > this.y && y < this.y + 11;
+    }
+
+    private String trimText(String text, int maxWidth) {
+        return GuiText.trim(text, maxWidth);
     }
 
     @Override

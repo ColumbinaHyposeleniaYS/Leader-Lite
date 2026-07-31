@@ -78,6 +78,7 @@ public class Leader {
         moduleManager.modules.put(BackTrack.class,new BackTrack());
         moduleManager.modules.put(BedESP.class, new BedESP());
         moduleManager.modules.put(BedTracker.class, new BedTracker());
+        moduleManager.modules.put(Breadcrumbs.class, new Breadcrumbs());
         moduleManager.modules.put(Blink.class, new Blink());
         moduleManager.modules.put(BlinkSettings.class, new BlinkSettings());
         moduleManager.modules.put(Chams.class, new Chams());
@@ -127,7 +128,6 @@ public class Leader {
         moduleManager.modules.put(Refill.class, new Refill());
         moduleManager.modules.put(SafeWalk.class, new SafeWalk());
         moduleManager.modules.put(Scaffold.class, new Scaffold());
-        moduleManager.modules.put(LegitTelly.class, new LegitTelly());
         moduleManager.modules.put(AutoBlockIn.class, new AutoBlockIn());
         moduleManager.modules.put(Spammer.class, new Spammer());
         moduleManager.modules.put(Speed.class, new Speed());

@@ -2,6 +2,7 @@ package leader.ui.components;
 import leader.enums.ChatColors;
 import leader.property.properties.ColorProperty;
 import leader.ui.Component;
+import leader.ui.GuiText;
 import leader.util.RenderUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
@@ -29,14 +30,15 @@ public class ColorSliderComponent implements Component {
     }
     @Override
     public void draw(AtomicInteger offset) {
-        int x = parentModule.category.getX() + 4;
+        int x = parentModule.category.getX() + 8;
         int y = parentModule.category.getY() + offsetY;
-        int width = parentModule.category.getWidth() - 8;
-        GL11.glPushMatrix();
-        GL11.glScaled(0.5, 0.5, 0.5);
-        Minecraft.getMinecraft().fontRendererObj.drawStringWithShadow(property.getName().replace("-", " ") + ": " + ChatColors.formatColor(property.formatValue()),
-                (float) (x * 2), (float) ((int) ((float) (this.parentModule.category.getY() + this.offsetY + 3) * 2.0F)), -1);
-        GL11.glPopMatrix();
+        int width = parentModule.category.getWidth() - 16;
+        int colorPreviewSize = 7;
+        int colorPreviewX = x + width - colorPreviewSize;
+        int textY = y + (Math.max(10, GuiText.height() + 3) - GuiText.height()) / 2;
+        GuiText.draw(trimText(property.getName().replace("-", " ") + ": " + ChatColors.formatColor(property.formatValue()),
+                        colorPreviewX - x - 4),
+                x, textY, new Color(215, 218, 225).getRGB());
         if (!draggingHue && !draggingSat && !draggingBri && !draggingAlp) {
             Color color = new Color(property.getValue());
             float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
@@ -44,14 +46,11 @@ public class ColorSliderComponent implements Component {
             saturation = hsb[1];
             brightness = hsb[2];
         }
-        int colorPreviewSize = 6;
-        int colorPreviewX = x + width - colorPreviewSize;
         int colorPreviewY = y + 2;
         int previewColor = Color.HSBtoRGB(hue, saturation, brightness);
-        Gui.drawRect(colorPreviewX - 6, colorPreviewY, colorPreviewX + colorPreviewSize, colorPreviewY + colorPreviewSize, previewColor);
-        Gui.drawRect(colorPreviewX - 6, colorPreviewY, colorPreviewX + colorPreviewSize, colorPreviewY + colorPreviewSize, previewColor);
-        RenderUtil.drawRoundedRectWithGl(colorPreviewX - 7, colorPreviewY - 1, colorPreviewX + colorPreviewSize + 1, colorPreviewY + colorPreviewSize + 1, 2, new Color(255,255,255,80).getRGB());
-        int baseY = y + 10;
+        RenderUtil.drawRoundedRectWithGl(colorPreviewX - 1, colorPreviewY - 1, colorPreviewX + colorPreviewSize + 1, colorPreviewY + colorPreviewSize + 1, 3, new Color(255, 255, 255, 85).getRGB());
+        RenderUtil.drawRoundedRectWithGl(colorPreviewX, colorPreviewY, colorPreviewX + colorPreviewSize, colorPreviewY + colorPreviewSize, 2, previewColor);
+        int baseY = y + Math.max(10, GuiText.height() + 3);
         int satY = baseY + 4 + 2;
         int briY = satY + 4 + 2;
         drawHueBar(x, baseY, width);
@@ -67,7 +66,7 @@ public class ColorSliderComponent implements Component {
             int color = Color.HSBtoRGB(hue, 1f, 1f);
             Gui.drawRect(x + i, y, x + i + 1, y + 4, color);
         }
-        RenderUtil.drawRoundedRectWithGl(x - 1, y - 1, x + width + 1, y + 5, 2, new Color(255, 255, 255, 30).getRGB());
+        RenderUtil.drawRoundedRectWithGl(x - 1, y - 1, x + width + 1, y + 5, 2, new Color(255, 255, 255, 48).getRGB());
     }
     private void drawPointer(int x, int y, int width, float value) {
         int posX = x + (int) (width * value);
@@ -76,8 +75,8 @@ public class ColorSliderComponent implements Component {
 
     @Override
     public void update(int mouseX, int mouseY) {
-        int baseX = parentModule.category.getX() + 4;
-        int width = parentModule.category.getWidth() - 8;
+        int baseX = parentModule.category.getX() + 8;
+        int width = parentModule.category.getWidth() - 16;
         boolean changed = false;
 
         if (draggingHue) {
@@ -112,7 +111,7 @@ public class ColorSliderComponent implements Component {
     @Override
     public void mouseDown(int mouseX, int mouseY, int button) {
         if (button != 0 || !parentModule.panelExpand) return;
-        int baseY = parentModule.category.getY() + offsetY + 10;
+        int baseY = parentModule.category.getY() + offsetY + Math.max(10, GuiText.height() + 3);
         if (isHovered(mouseX, mouseY, baseY)) draggingHue = true;
         else if (isHovered(mouseX, mouseY, baseY + 4 + 2)) draggingSat = true;
         else if (isHovered(mouseX, mouseY, baseY + (4 + 2) * 2)) draggingBri = true;
@@ -126,9 +125,13 @@ public class ColorSliderComponent implements Component {
     }
 
     private boolean isHovered(int mx, int my, int sliderY) {
-        int startX = parentModule.category.getX() + 4;
-        int endX = startX + parentModule.category.getWidth() - 8;
+        int startX = parentModule.category.getX() + 8;
+        int endX = startX + parentModule.category.getWidth() - 16;
         return mx >= startX && mx <= endX && my >= sliderY && my <= sliderY + 4;
+    }
+
+    private String trimText(String text, int maxWidth) {
+        return GuiText.trim(text, maxWidth);
     }
 
     @Override
@@ -147,7 +150,7 @@ public class ColorSliderComponent implements Component {
 
     @Override
     public int getHeight() {
-        return 10 + 17 + 6;
+        return Math.max(10, GuiText.height() + 3) + 17 + 6;
     }
 
     private void drawGradientRect(int left, int top, int right, int bottom, int startColor, int endColor) {

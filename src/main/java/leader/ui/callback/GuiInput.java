@@ -1,5 +1,6 @@
 package leader.ui.callback;
 
+import leader.ui.GuiText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
@@ -72,7 +73,7 @@ public class GuiInput extends GuiScreen {
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         drawDefaultBackground();
-        drawCenteredString(fontRendererObj, title, width / 2, height / 2 - 35, 0xFFFFFF);
+        GuiText.drawCentered(title, width / 2, height / 2 - 35, 0xFFFFFF);
         textField.drawTextBox();
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
