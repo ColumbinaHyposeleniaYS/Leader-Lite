@@ -14,7 +14,7 @@ public abstract class MixinGuiInventory {
     private void hideLegitSpoofInventory(int mouseX, int mouseY, float partialTicks, CallbackInfo callbackInfo) {
         if (Leader.moduleManager == null) return;
         InvManager invManager = (InvManager) Leader.moduleManager.modules.get(InvManager.class);
-        if (invManager != null && invManager.shouldHideLegitSpoofInventory()) {
+        if (invManager != null && invManager.shouldHideInventory()) {
             callbackInfo.cancel();
         }
     }

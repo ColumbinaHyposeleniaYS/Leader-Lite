@@ -2,6 +2,7 @@ package leader.module.modules.player;
 
 import leader.Leader;
 import leader.module.modules.misc.Disabler;
+import leader.util.PlayerUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.inventory.ContainerPlayer;
@@ -31,7 +32,8 @@ public class InvManager extends Module {
     public final IntProperty maxDelay = new IntProperty("Max Delay", 0, 0, 20);
     public final IntProperty openDelay = new IntProperty("Open Delay", 0, 0, 20);
     public final ModeProperty mode = new ModeProperty("Mode", 1, new String[]{"Normal", "Instant", "Spoof"});
-    public final BooleanProperty legitSpoof = new BooleanProperty("Legit Spoof", false, () -> mode.getValue() == 2);
+    public final BooleanProperty silentInv = new BooleanProperty("Silent Inv", false, () -> mode.getValue() != 2);
+    public final BooleanProperty autoOpen = new BooleanProperty("AutoOpen",true, () -> mode.getValue() != 2);
     public final BooleanProperty autoClose = new BooleanProperty("Auto Close", false, () -> mode.getValue() != 2);
     public final BooleanProperty autoArmor = new BooleanProperty("Auto Armor", true);
     public final BooleanProperty dropTrash = new BooleanProperty("Drop Trash", true);
@@ -55,7 +57,6 @@ public class InvManager extends Module {
     private boolean spoofServerOpen = false;
     private boolean spoofNextClose = false;
     private boolean spoofOpenedThisTick = false;
-    private boolean legitSpoofOpen = false;
     private int legitSpoofOpenTick = -1;
 
     public InvManager() {
@@ -64,12 +65,12 @@ public class InvManager extends Module {
 
     @Override
     public String[] getSuffix() {
-        return new String[]{mode.getModeString() + (mode.getValue() == 2 && legitSpoof.getValue() ? " Legit" : "")};
+        return new String[]{mode.getModeString()};
     }
 
-    public boolean shouldHideLegitSpoofInventory() {
-        return this.isEnabled() && this.mode.getValue() == 2 && this.legitSpoof.getValue()
-                && this.legitSpoofOpen && mc.currentScreen instanceof GuiInventory;
+    public boolean shouldHideInventory() {
+        return this.isEnabled() && this.mode.getValue() != 2 && silentInv.getValue()
+               && mc.currentScreen instanceof GuiInventory;
     }
 
     private boolean isValidGameMode() {
@@ -214,29 +215,6 @@ public class InvManager extends Module {
             spoofServerOpen = false;
         }
     }
-
-    private void openLegitSpoofInventory() {
-        if (mc.currentScreen instanceof GuiInventory) {
-            this.legitSpoofOpen = true;
-            return;
-        }
-        mc.displayGuiScreen(new GuiInventory(mc.thePlayer));
-        this.legitSpoofOpen = true;
-        this.legitSpoofOpenTick = mc.thePlayer.ticksExisted;
-    }
-
-    private void closeLegitSpoofInventory() {
-        if (this.legitSpoofOpen && mc.currentScreen instanceof GuiInventory) {
-            mc.displayGuiScreen(null);
-        }
-        this.legitSpoofOpen = false;
-        this.legitSpoofOpenTick = -1;
-    }
-
-    private boolean isLegitSpoofScreenOpen() {
-        return this.legitSpoofOpen && mc.currentScreen instanceof GuiInventory;
-    }
-
 
     private boolean isInventorySorted() {
         if (!isValidGameMode()) return true;
@@ -411,39 +389,29 @@ public class InvManager extends Module {
             if (this.oDelay > 0) {
                 this.oDelay--;
             }
-            
             if (this.isEnabled() && this.isValidGameMode() && this.mode.getValue() == 2) {
                 if (this.actionDelay > 0) return;
                 if (mc.thePlayer.isUsingItem()) return;
                 if (isInventorySorted()) {
-                    if (this.legitSpoof.getValue()) {
-                        this.closeLegitSpoofInventory();
-                    } else {
-                        if (spoofServerOpen) spoofNextClose = true;
-                        if (spoofNextClose) { spoofClose(); spoofNextClose = false; }
-                    }
+                    if (spoofServerOpen) spoofNextClose = true;
+                    if (spoofNextClose) { spoofClose(); spoofNextClose = false; }
                     return;
                 }
 
-                if (this.legitSpoof.getValue()) {
-                    if (!this.isLegitSpoofScreenOpen()) {
-                        this.openLegitSpoofInventory();
-                        this.inventoryOpen = true;
-                        this.oDelay = 0;
-                        return;
-                    }
-                    if (this.legitSpoofOpenTick == mc.thePlayer.ticksExisted) return;
-                } else {
-                    if (spoofNextClose) { spoofClose(); spoofNextClose = false; return; }
-                    spoofOpen();
-                    this.oDelay = 0;
-                    this.inventoryOpen = true;
-                    if (this.spoofOpenedThisTick) return;
-                }
+                if (spoofNextClose) { spoofClose(); spoofNextClose = false; return; }
+                spoofOpen();
+                this.oDelay = 0;
+                this.inventoryOpen = true;
+                if (this.spoofOpenedThisTick) return;
             }
-
+            if (!isInventorySorted() && !(mc.currentScreen instanceof GuiInventory) && autoOpen.getValue() && this.isEnabled() && !PlayerUtil.isUsingItem() && !mc.thePlayer.isUsingItem() && !Leader.moduleManager.getModule(Scaffold.class).isEnabled()){
+                mc.displayGuiScreen(new GuiInventory(mc.thePlayer));
+                this.oDelay = 0;
+                this.inventoryOpen = true;
+                return;
+            }
             boolean isInventoryOpen = (mc.currentScreen instanceof GuiInventory)
-                    || (this.mode.getValue() == 2 && !this.legitSpoof.getValue() && spoofServerOpen);
+                    || (this.mode.getValue() == 2 && spoofServerOpen);
             if (!isInventoryOpen) {
                 this.inventoryOpen = false;
             } else if ((mc.currentScreen instanceof GuiInventory) && !(((GuiInventory) mc.currentScreen).inventorySlots instanceof ContainerPlayer)) {
@@ -900,7 +868,6 @@ public class InvManager extends Module {
         if (mode.getValue() == 2) {
             spoofServerOpen = false;
             spoofNextClose = false;
-            legitSpoofOpen = false;
             legitSpoofOpenTick = -1;
         }
     }
@@ -909,7 +876,6 @@ public class InvManager extends Module {
     public void onDisabled() {
         if (mode.getValue() == 2) {
             spoofClose();
-            closeLegitSpoofInventory();
             spoofServerOpen = false;
             spoofNextClose = false;
         }

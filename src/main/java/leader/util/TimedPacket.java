@@ -11,6 +11,7 @@ public class TimedPacket {
     public TimedPacket(Packet<?> packet) {
         this.packet = packet;
         this.time = new TimerUtil();
+        this.time.reset();
         this.millis = System.currentTimeMillis();
     }
 
@@ -18,6 +19,7 @@ public class TimedPacket {
         this.packet = packet;
         this.millis = millis;
         this.time = new TimerUtil();
+        this.time.reset();
     }
 
 

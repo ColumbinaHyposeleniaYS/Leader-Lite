@@ -5,6 +5,7 @@ import leader.Leader;
 import leader.event.EventTarget;
 import leader.event.types.EventType;
 import leader.event.types.Priority;
+import leader.events.LivingUpdateEvent;
 import leader.events.PacketEvent;
 import leader.events.TickEvent;
 import leader.events.UpdateEvent;
@@ -52,6 +53,7 @@ public class InvWalk extends Module {
 
     public final ModeProperty mode = new ModeProperty("mode", 1, new String[]{"VANILLA", "LEGIT", "HYPIXEL", "LEGIT+"});
     public final BooleanProperty guiEnabled = new BooleanProperty("click-gui", true);
+    public final BooleanProperty disSprint = new BooleanProperty("DisSprint",true);
     public final IntProperty openDelay = new IntProperty("open-delay", 0, 0, 20, () -> mode.getValue() == 3);
     public final IntProperty closeDelay = new IntProperty("close-delay", 4, 0, 20, () -> mode.getValue() == 3);
     public final BooleanProperty lockMoveKey = new BooleanProperty("lock-move-dey", false);
@@ -147,7 +149,17 @@ public class InvWalk extends Module {
             }
         }
     }
-
+    @EventTarget
+    public void onLivingUpdate(LivingUpdateEvent event){
+        if (this.isEnabled()){
+            if (disSprint.getValue()){
+                if(canInvWalk() && mc.currentScreen != null) {
+                    KeyBindUtil.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
+                    mc.thePlayer.setSprinting(false);
+                }
+            }
+        }
+    }
     @EventTarget(Priority.LOWEST)
     public void onUpdate(UpdateEvent event) {
         if (!this.isEnabled() || event.getType() != EventType.PRE) return;
@@ -233,7 +245,7 @@ public class InvWalk extends Module {
         } else {
             C0EPacketClickWindow packet = (C0EPacketClickWindow) event.getPacket();
             switch (this.mode.getValue()) {
-                case 1: // Legit
+                case 1:
                     if (packet.getWindowId() == 0) {
                         if ((packet.getMode() == 3 || packet.getMode() == 4) && packet.getSlotId() == -999) {
                             event.setCancelled(true);
@@ -246,7 +258,7 @@ public class InvWalk extends Module {
                         }
                     }
                     break;
-                case 2: // Hypixel
+                case 2:
                     if ((packet.getMode() == 3 || packet.getMode() == 4) && packet.getSlotId() == -999) {
                         event.setCancelled(true);
                     } else {
@@ -256,7 +268,7 @@ public class InvWalk extends Module {
                         this.delayTicks = 8;
                     }
                     break;
-                case 3: // Legit+
+                case 3:
                     if (packet.getWindowId() == 0) { // inventory
                         if ((packet.getMode() == 3 || packet.getMode() == 4) && packet.getSlotId() == -999) {
                             event.setCancelled(true);

@@ -52,7 +52,6 @@ public class BackTrack extends Module {
    private Vec3 realTargetPos;
    private Vec3 lastRealTargetPos;
    private EntityPlayer target;
-   private int attackTicks;
 
    public BackTrack() {
       super("BackTrack", false);
@@ -82,7 +81,6 @@ public class BackTrack extends Module {
       realTargetPos = null;
       lastRealTargetPos = null;
       target = null;
-      attackTicks = 0;
    }
 
    @EventTarget
@@ -103,7 +101,6 @@ public class BackTrack extends Module {
          }
       }
       if (target != null && player.getEntityId() == target.getEntityId()) {
-         attackTicks = 0;
          return;
       }
       target = player;
@@ -114,20 +111,13 @@ public class BackTrack extends Module {
       recentPositions.clear();
       positionHistory.add(realTargetPos);
       recentPositions.add(realTargetPos);
-
-      attackTicks = 0;
    }
 
    @EventTarget
    public void onTick(TickEvent e) {
       if (!isEnabled() || e.getType() == EventType.POST) return;
-      if (target != null) {
-         attackTicks++;
-      }
-
       updateTargetLogic();
       processPacketQueue();
-
       if (packetQueue.isEmpty() && target != null) {
          realTargetPos = target.getPositionVector();
       }
