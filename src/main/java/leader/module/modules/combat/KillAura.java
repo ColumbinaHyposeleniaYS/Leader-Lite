@@ -671,7 +671,6 @@ public class KillAura extends Module {
                                             if (this.isPlayerBlocking()) {
                                                 int handle = mc.thePlayer.inventory.currentItem;
                                                 PacketUtil.sendPacket(new C09PacketHeldItemChange(Disabler.getAltSlot(handle)));
-                                                PacketUtil.sendPacket(new C09PacketHeldItemChange(handle % 7 + 2));
                                                 PacketUtil.sendPacket(new C09PacketHeldItemChange(handle));
                                                 this.stopBlock();
                                                 blockTick = 3;
@@ -687,7 +686,7 @@ public class KillAura extends Module {
                                     }
                                 }
                                 this.isBlocking = true;
-                                this.fakeBlockState = true;
+                                this.fakeBlockState = false;
                             } else {
                                 Leader.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
                                 this.isBlocking = false;
