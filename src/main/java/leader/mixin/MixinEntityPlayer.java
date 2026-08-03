@@ -24,12 +24,11 @@ public abstract class MixinEntityPlayer extends MixinEntityLivingBase {
     private double attackTargetEntityWithCurrentItem(double speed) {
         if (Leader.moduleManager == null) {
             return speed;
-        } else {
-            KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.modules.get(KeepSprint.class);
-            return keepSprint.isEnabled() && keepSprint.shouldKeepSprint()
-                    ? speed + (1.0 - speed) * (1.0 - keepSprint.slowdown.getValue().doubleValue() / 100.0)
-                    : speed;
         }
+        KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.modules.get(KeepSprint.class);
+        return keepSprint.isEnabled() && keepSprint.shouldKeepSprint()
+                ? keepSprint.getSlowFactor()
+                : speed;
     }
 
     @Redirect(

@@ -33,7 +33,7 @@ import leader.util.*;
 
 public class NoSlow extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
-    public final ModeProperty swordMode = new ModeProperty("Sword Mode", 1, new String[]{"None", "Vanilla", "BlinkSemi","Prediction","PredictionSemi"});
+    public final ModeProperty swordMode = new ModeProperty("Sword Mode", 1, new String[]{"None", "Vanilla", "BlinkSemi","Prediction","PredictionSemi","Test"});
     public final BooleanProperty tick0 = new BooleanProperty("Tick 0", true, () -> swordMode.getValue() == 4);
     public final BooleanProperty tick1 = new BooleanProperty("Tick 1", true, () -> swordMode.getValue() == 4);
     public final BooleanProperty tick2 = new BooleanProperty("Tick 2", false, () -> swordMode.getValue() == 4);
@@ -52,6 +52,7 @@ public class NoSlow extends Module {
     private int lastSlot = -1;
     private int delay = 0;
     private int blinkDelay = 0;
+    private boolean swapped = false;
 
     public NoSlow() {
         super("NoSlow", false);
@@ -160,9 +161,27 @@ public class NoSlow extends Module {
                     }
                 }
             }
+            if (this.swordMode.getValue() == 5) {
+                int handle = mc.thePlayer.inventory.currentItem;
+                if (swapped){
+                    swapped = false;
+                    PacketUtil.sendPacket(new C09PacketHeldItemChange(handle));
+                    return;
+                }
+                PacketUtil.sendPacket(new C09PacketHeldItemChange(Disabler.getAltSlot(handle)));
+                swapped = true;
+            }
         }
         else
         {
+            if (this.swordMode.getValue() == 5) {
+                int handle = mc.thePlayer.inventory.currentItem;
+                if (swapped){
+                    swapped = false;
+                    PacketUtil.sendPacket(new C09PacketHeldItemChange(handle));
+                    return;
+                }
+            }
             if (blinkDelay >= 0 && this.swordMode.getValue() == 2) {
                 Leader.blinkManager.setBlinkState(false, BlinkModules.AUTO_BLOCK);
                 blinkDelay = -1;

@@ -6,6 +6,8 @@ import leader.event.EventTarget;
 import leader.event.types.EventType;
 import leader.events.PacketEvent;
 import leader.events.Render2DEvent;
+import leader.events.Render3DEvent;
+import leader.mixin.IAccessorRenderManager;
 import leader.module.Module;
 import leader.module.modules.combat.KillAura;
 import leader.module.modules.render.HUD;
@@ -52,10 +54,12 @@ public class TargetHUD extends Module {
     private float maxHealth = 0.0F;
     private float lastObservedHealth = Float.NaN;
     private final List<HitParticle> hitParticles = new ArrayList<>();
+    private boolean renderingFollow = false;
     public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"DEFAULT", "TRIANGLE", "BACKGROUND", "MODERN"});
     public final ModeProperty color = new ModeProperty("color", 0, new String[]{"DEFAULT", "HUD"});
-    public final ModeProperty posX = new ModeProperty("position-x", 1, new String[]{"LEFT", "MIDDLE", "RIGHT"});
-    public final ModeProperty posY = new ModeProperty("position-y", 1, new String[]{"TOP", "MIDDLE", "BOTTOM"});
+    public final ModeProperty position = new ModeProperty("position", 0, new String[]{"SCREEN", "FOLLOW"});
+    public final ModeProperty posX = new ModeProperty("position-x", 1, new String[]{"LEFT", "MIDDLE", "RIGHT"}, () -> this.position.getValue() == 0);
+    public final ModeProperty posY = new ModeProperty("position-y", 1, new String[]{"TOP", "MIDDLE", "BOTTOM"}, () -> this.position.getValue() == 0);
     public final FloatProperty scale = new FloatProperty("scale", 1.0F, 0.5F, 1.5F);
     public final FloatProperty fontScale = new FloatProperty("font-scale", 1.15F, 0.85F, 1.5F);
     public final IntProperty offX = new IntProperty("offset-x", 0, -255, 255);
@@ -184,8 +188,173 @@ public class TargetHUD extends Module {
     }
 
     @EventTarget
+    public void onRender3D(Render3DEvent event) {
+        if (!this.isEnabled() || mc.thePlayer == null || this.position.getValue() != 1) {
+            return;
+        }
+
+        EntityLivingBase targetEntity = this.resolveTarget();
+        if (targetEntity == null || targetEntity == mc.thePlayer) {
+            return;
+        }
+
+        this.updateTargetState(targetEntity);
+        this.renderFollow(event.getPartialTicks(), targetEntity);
+    }
+
+    private void updateTargetState(EntityLivingBase targetEntity) {
+        EntityLivingBase previousTarget = this.target;
+        this.target = targetEntity;
+        float health = (mc.thePlayer.getHealth() + mc.thePlayer.getAbsorptionAmount()) / 2.0F;
+        float abs = targetEntity.getAbsorptionAmount() / 2.0F;
+        float heal = targetEntity.getHealth() / 2.0F + abs;
+        if (targetEntity != previousTarget) {
+            this.headTexture = null;
+            this.animTimer.setTime();
+            this.oldHealth = heal;
+            this.newHealth = heal;
+            this.lastObservedHealth = heal;
+            this.hitParticles.clear();
+        }
+        this.maxHealth = Math.max(targetEntity.getMaxHealth() / 2.0F, 1.0F);
+        if (!Float.isNaN(this.lastObservedHealth)
+                && heal < this.lastObservedHealth - 0.001F
+                && this.mode.getValue() == 3) {
+            this.spawnHitParticles();
+        }
+        this.lastObservedHealth = heal;
+        if (!this.animations.getValue() || this.animTimer.hasTimeElapsed(150L)) {
+            float previousHealth = this.newHealth;
+            this.oldHealth = this.newHealth;
+            this.newHealth = heal;
+            if (this.newHealth < previousHealth - 0.001F && this.mode.getValue() == 3) {
+                this.spawnHitParticles();
+            }
+            if (Math.abs(this.oldHealth - this.newHealth) > 0.001F) {
+                this.animTimer.reset();
+            }
+        }
+        ResourceLocation resourceLocation = this.getSkin(targetEntity);
+        if (resourceLocation != null) {
+            this.headTexture = resourceLocation;
+        }
+    }
+
+    private void renderFollow(float partialTicks, EntityLivingBase targetEntity) {
+        ScaledResolution scaledResolution = new ScaledResolution(mc);
+        String targetNameText = ChatColors.formatColor(String.format("&r%s&r", TeamUtil.stripName(targetEntity)));
+        float targetNameWidth = this.getTextWidth(targetNameText);
+        float abs = targetEntity.getAbsorptionAmount() / 2.0F;
+        float heal = targetEntity.getHealth() / 2.0F + abs;
+        String healthText = ChatColors.formatColor(String.format("&r&f%s%s❤&r", healthFormat.format(heal), abs > 0.0F ? "&6" : "&c"));
+        float healthTextWidth = this.getTextWidth(healthText);
+        String statusText = ChatColors.formatColor(String.format("&r&l%s&r", heal == (mc.thePlayer.getHealth() + mc.thePlayer.getAbsorptionAmount()) / 2.0F ? "D" : (heal < (mc.thePlayer.getHealth() + mc.thePlayer.getAbsorptionAmount()) / 2.0F ? "W" : "L")));
+        float statusTextWidth = this.getTextWidth(statusText);
+        String healthDiffText = ChatColors.formatColor(String.format("&r%s&r", diffFormat.format((mc.thePlayer.getHealth() + mc.thePlayer.getAbsorptionAmount()) / 2.0F - heal)));
+        float healthDiffWidth = this.getTextWidth(healthDiffText);
+        Color targetColor = this.getTargetColor(targetEntity);
+        float healthRatio = Math.min(Math.max(RenderUtil.lerpFloat(this.newHealth, this.oldHealth, Math.min(Math.max(this.animTimer.getElapsedTime(), 0L), 150L) / 150.0F) / this.maxHealth, 0.0F), 1.0F);
+        Color healthBarColor = this.color.getValue() == 0 ? ColorUtil.getHealthBlend(healthRatio) : targetColor;
+        Color healthDeltaColor = ColorUtil.getHealthBlend(Math.min(Math.max(((mc.thePlayer.getHealth() + mc.thePlayer.getAbsorptionAmount()) / 2.0F - heal + 1.0F) / 2.0F, 0.0F), 1.0F));
+
+        float cardWidth;
+        float cardHeight;
+        if (this.mode.getValue() == 3) {
+            cardWidth = Math.max(220.0F, targetNameWidth + 118.0F);
+            cardHeight = 48.0F;
+        } else if (this.mode.getValue() == 2) {
+            cardWidth = 150.0F;
+            cardHeight = this.getCardHeight();
+        } else if (this.mode.getValue() == 1) {
+            cardWidth = 150.0F;
+            cardHeight = Math.max(85.0F, 48.0F + this.getTextHeight() * 2.0F);
+        } else {
+            float barContentWidth = Math.max(targetNameWidth + (this.indicator.getValue() ? 2.0F + statusTextWidth + 2.0F : 0.0F), healthTextWidth + (this.indicator.getValue() ? 2.0F + healthDiffWidth + 2.0F : 0.0F));
+            float headSize = this.head.getValue() && this.headTexture != null ? Math.min(23.0F, this.getCardHeight() - 4.0F) + 2.0F : 0.0F;
+            cardWidth = Math.max(headSize + 70.0F, headSize + 2.0F + barContentWidth + 2.0F);
+            cardHeight = this.getCardHeight();
+        }
+
+        double targetX = targetEntity.lastTickPosX + (targetEntity.posX - targetEntity.lastTickPosX) * partialTicks;
+        double targetY = targetEntity.lastTickPosY + (targetEntity.posY - targetEntity.lastTickPosY) * partialTicks + targetEntity.height * 0.55D;
+        double targetZ = targetEntity.lastTickPosZ + (targetEntity.posZ - targetEntity.lastTickPosZ) * partialTicks;
+        double dx = mc.thePlayer.posX - targetX;
+        double dz = mc.thePlayer.posZ - targetZ;
+        double distance = Math.sqrt(dx * dx + dz * dz);
+        if (distance < 0.001D) {
+            dx = -Math.sin(Math.toRadians(targetEntity.rotationYaw));
+            dz = Math.cos(Math.toRadians(targetEntity.rotationYaw));
+            distance = 1.0D;
+        }
+        double sideX = -dz / distance * (targetEntity.width + 0.45D);
+        double sideZ = dx / distance * (targetEntity.width + 0.45D);
+        IAccessorRenderManager renderManager = (IAccessorRenderManager) mc.getRenderManager();
+
+        // Follow uses a fixed world-space size. Do not scale the HUD by view distance.
+        double followScale = 0.0075D * this.scale.getValue();
+
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(targetX + sideX - renderManager.getRenderPosX(), targetY - renderManager.getRenderPosY(), targetZ + sideZ - renderManager.getRenderPosZ());
+        GlStateManager.rotate(-mc.getRenderManager().playerViewY, 0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate(mc.getRenderManager().playerViewX, mc.gameSettings.thirdPersonView == 2 ? -1.0F : 1.0F, 0.0F, 0.0F);
+        GlStateManager.scale(-followScale, -followScale, 1.0D);
+        GlStateManager.translate(-cardWidth / 2.0F, -cardHeight / 2.0F, 0.0F);
+
+        // The SCREEN renderers calculate their own 2D coordinates. Reusing them
+        // in a world-space matrix puts the card far outside the target. Follow
+        // therefore uses a local, centered card renderer.
+        GlStateManager.disableDepth();
+        this.renderingFollow = true;
+        if (this.mode.getValue() == 3) {
+            renderModern(scaledResolution, targetNameText, healthText, statusText, healthDiffText, targetNameWidth, healthTextWidth, statusTextWidth, healthDiffWidth, healthRatio, targetColor, healthBarColor, healthDeltaColor, heal, (mc.thePlayer.getHealth() + mc.thePlayer.getAbsorptionAmount()) / 2.0F, abs);
+        } else if (this.mode.getValue() == 2) {
+            renderBackground(scaledResolution, targetNameText, healthText, targetNameWidth, healthTextWidth, healthRatio, targetColor, healthBarColor, heal, (mc.thePlayer.getHealth() + mc.thePlayer.getAbsorptionAmount()) / 2.0F, abs);
+        } else if (this.mode.getValue() == 1) {
+            renderTriangle(scaledResolution, targetNameText, healthText, statusText, healthDiffText, targetNameWidth, healthTextWidth, statusTextWidth, healthDiffWidth, healthRatio, targetColor, healthBarColor, healthDeltaColor, heal, (mc.thePlayer.getHealth() + mc.thePlayer.getAbsorptionAmount()) / 2.0F, abs);
+        } else {
+            renderDefaultFollow(cardWidth, cardHeight, targetNameText, healthText, statusText, healthDiffText,
+                    targetNameWidth, healthTextWidth, statusTextWidth, healthDiffWidth, healthRatio,
+                    targetColor, healthBarColor, healthDeltaColor);
+        }
+        this.renderingFollow = false;
+        GlStateManager.enableDepth();
+        GlStateManager.popMatrix();
+    }
+
+    private void renderDefaultFollow(float cardWidth, float cardHeight, String targetNameText, String healthText, String statusText, String healthDiffText, float targetNameWidth, float healthTextWidth, float statusTextWidth, float healthDiffWidth, float healthRatio, Color targetColor, Color healthBarColor, Color healthDeltaColor) {
+        RenderUtil.enableRenderState();
+        RenderUtil.drawRect(0.0F, 0.0F, cardWidth, cardHeight, this.getBackgroundColor());
+        if (this.outline.getValue()) {
+            this.drawOutline(0.0F, 0.0F, cardWidth, cardHeight, 1.5F, targetColor.getRGB());
+        }
+        float headSize = this.head.getValue() && this.headTexture != null ? Math.min(23.0F, cardHeight - 4.0F) : 0.0F;
+        float headOffset = headSize > 0.0F ? headSize + 2.0F : 0.0F;
+        float barY = this.getHealthBarY();
+        RenderUtil.drawRect(headOffset + 2.0F, barY, cardWidth - 2.0F, barY + 3.0F, ColorUtil.darker(healthBarColor, 0.2F).getRGB());
+        RenderUtil.drawRect(headOffset + 2.0F, barY, headOffset + 2.0F + healthRatio * (cardWidth - headOffset - 4.0F), barY + 3.0F, healthBarColor.getRGB());
+        RenderUtil.disableRenderState();
+        GlStateManager.disableDepth();
+        GlStateManager.enableBlend();
+        this.drawText(targetNameText, headOffset + 2.0F, this.getTextTop(), -1);
+        this.drawText(healthText, headOffset + 2.0F, this.getSecondTextY(), -1);
+        if (this.indicator.getValue()) {
+            this.drawText(statusText, cardWidth - 2.0F - statusTextWidth, this.getTextTop(), healthDeltaColor.getRGB());
+            this.drawText(healthDiffText, cardWidth - 2.0F - healthDiffWidth, this.getSecondTextY(), ColorUtil.darker(healthDeltaColor, 0.8F).getRGB());
+        }
+        if (headSize > 0.0F && this.headTexture != null) {
+            GlStateManager.color(1.0F, 1.0F, 1.0F);
+            mc.getTextureManager().bindTexture(this.headTexture);
+            Gui.drawScaledCustomSizeModalRect(2, (int) ((cardHeight - headSize) / 2.0F), 8.0F, 8.0F, 8, 8, (int) headSize, (int) headSize, 64.0F, 64.0F);
+            Gui.drawScaledCustomSizeModalRect(2, (int) ((cardHeight - headSize) / 2.0F), 40.0F, 8.0F, 8, 8, (int) headSize, (int) headSize, 64.0F, 64.0F);
+            GlStateManager.color(1.0F, 1.0F, 1.0F);
+        }
+        GlStateManager.disableBlend();
+        GlStateManager.enableDepth();
+    }
+
+    @EventTarget
     public void onRender(Render2DEvent event) {
-        if (this.isEnabled() && mc.thePlayer != null) {
+        if (this.isEnabled() && mc.thePlayer != null && this.position.getValue() == 0) {
             EntityLivingBase entityLivingBase = this.target;
             this.target = this.resolveTarget();
             if (this.target != null) {
@@ -331,26 +500,30 @@ public class TargetHUD extends Module {
         boolean hasHead = this.head.getValue() && this.headTexture != null;
         float headIconOffset = hasHead ? headSize + 2.0F : 0.0F;
 
-        float posX = this.offX.getValue().floatValue() / this.scale.getValue();
-        switch (this.posX.getValue()) {
-            case 1:
-                posX += (float) scaledResolution.getScaledWidth() / this.scale.getValue() / 2.0F - barWidth / 2.0F;
-                break;
-            case 2:
-                posX *= -1.0F;
-                posX += (float) scaledResolution.getScaledWidth() / this.scale.getValue() - barWidth;
+        float posX = this.renderingFollow ? -barWidth / 2.0F : this.offX.getValue().floatValue() / this.scale.getValue();
+        if (!this.renderingFollow) {
+            switch (this.posX.getValue()) {
+                case 1:
+                    posX += (float) scaledResolution.getScaledWidth() / this.scale.getValue() / 2.0F - barWidth / 2.0F;
+                    break;
+                case 2:
+                    posX *= -1.0F;
+                    posX += (float) scaledResolution.getScaledWidth() / this.scale.getValue() - barWidth;
+            }
         }
-        float posY = this.offY.getValue().floatValue() / this.scale.getValue();
-        switch (this.posY.getValue()) {
-            case 1:
-                posY += (float) scaledResolution.getScaledHeight() / this.scale.getValue() / 2.0F - barHeight / 2.0F;
-                break;
-            case 2:
-                posY *= -1.0F;
-                posY += (float) scaledResolution.getScaledHeight() / this.scale.getValue() - barHeight;
+        float posY = this.renderingFollow ? -barHeight / 2.0F : this.offY.getValue().floatValue() / this.scale.getValue();
+        if (!this.renderingFollow) {
+            switch (this.posY.getValue()) {
+                case 1:
+                    posY += (float) scaledResolution.getScaledHeight() / this.scale.getValue() / 2.0F - barHeight / 2.0F;
+                    break;
+                case 2:
+                    posY *= -1.0F;
+                    posY += (float) scaledResolution.getScaledHeight() / this.scale.getValue() - barHeight;
+            }
         }
 
-        if (this.blur.getValue()) {
+        if (this.blur.getValue() && !this.renderingFollow) {
             final float bx = posX;
             final float by = posY;
             final float bw = barWidth;
@@ -368,8 +541,10 @@ public class TargetHUD extends Module {
         }
 
         GlStateManager.pushMatrix();
-        GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
-        GlStateManager.translate(posX, posY, -450.0F);
+        if (!this.renderingFollow) {
+            GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
+        }
+        GlStateManager.translate(posX, posY, this.renderingFollow ? 0.0F : -450.0F);
 
         RenderUtil.enableRenderState();
         RenderUtil.drawRect(0.0F, 0.0F, barWidth, barHeight, this.getBackgroundColor());
@@ -446,30 +621,36 @@ public class TargetHUD extends Module {
         String modernHealthText = ChatColors.formatColor(String.format("&r&f%s&r", healthFormat.format(heal)));
         float modernHealthWidth = this.getTextWidth(modernHealthText);
 
-        float posX = this.offX.getValue().floatValue() / this.scale.getValue();
-        switch (this.posX.getValue()) {
-            case 1:
-                posX += (float) scaledResolution.getScaledWidth() / this.scale.getValue() / 2.0F - cardWidth / 2.0F;
-                break;
-            case 2:
-                posX *= -1.0F;
-                posX += (float) scaledResolution.getScaledWidth() / this.scale.getValue() - cardWidth;
-                break;
+        float posX = this.renderingFollow ? -cardWidth / 2.0F : this.offX.getValue().floatValue() / this.scale.getValue();
+        if (!this.renderingFollow) {
+            switch (this.posX.getValue()) {
+                case 1:
+                    posX += (float) scaledResolution.getScaledWidth() / this.scale.getValue() / 2.0F - cardWidth / 2.0F;
+                    break;
+                case 2:
+                    posX *= -1.0F;
+                    posX += (float) scaledResolution.getScaledWidth() / this.scale.getValue() - cardWidth;
+                    break;
+            }
         }
-        float posY = this.offY.getValue().floatValue() / this.scale.getValue();
-        switch (this.posY.getValue()) {
-            case 1:
-                posY += (float) scaledResolution.getScaledHeight() / this.scale.getValue() / 2.0F - cardHeight / 2.0F;
-                break;
-            case 2:
-                posY *= -1.0F;
-                posY += (float) scaledResolution.getScaledHeight() / this.scale.getValue() - cardHeight;
-                break;
+        float posY = this.renderingFollow ? -cardHeight / 2.0F : this.offY.getValue().floatValue() / this.scale.getValue();
+        if (!this.renderingFollow) {
+            switch (this.posY.getValue()) {
+                case 1:
+                    posY += (float) scaledResolution.getScaledHeight() / this.scale.getValue() / 2.0F - cardHeight / 2.0F;
+                    break;
+                case 2:
+                    posY *= -1.0F;
+                    posY += (float) scaledResolution.getScaledHeight() / this.scale.getValue() - cardHeight;
+                    break;
+            }
         }
 
         GlStateManager.pushMatrix();
-        GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
-        GlStateManager.translate(posX, posY, -450.0F);
+        if (!this.renderingFollow) {
+            GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
+        }
+        GlStateManager.translate(posX, posY, this.renderingFollow ? 0.0F : -450.0F);
 
         float elapsedTime = (float) Math.min(Math.max(this.animTimer.getElapsedTime(), 0L), 180L);
         float hitProgress = this.oldHealth > this.newHealth ? 1.0F - elapsedTime / 180.0F : 0.0F;

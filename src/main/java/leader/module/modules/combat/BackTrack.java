@@ -254,8 +254,19 @@ public class BackTrack extends Module {
    }
    @EventTarget
    public void onUpdate(UpdateEvent event){
-      if (!isEnabled() || target == null)return;
-      if (rayTrance.getValue() && RotationUtil.rayTrace(this.target.getEntityBoundingBox(),event.getNewYaw(),event.getNewPitch(),maxDistance.getValue()) == null){
+      if (!isEnabled() || target == null || realTargetPos == null || event.getType() != EventType.PRE) {
+         return;
+      }
+
+      float size = target.getCollisionBorderSize();
+      double width = target.width / 2.0 + size;
+      double height = target.height + size;
+      AxisAlignedBB aabb = new AxisAlignedBB(
+              realTargetPos.xCoord - width, realTargetPos.yCoord, realTargetPos.zCoord - width,
+              realTargetPos.xCoord + width, realTargetPos.yCoord + height, realTargetPos.zCoord + width
+      );
+      if (rayTrance.getValue()
+              && RotationUtil.rayTrace(aabb, event.getNewYaw(), event.getNewPitch(), maxDistance.getValue()) == null) {
          resetAndRelease();
       }
    }

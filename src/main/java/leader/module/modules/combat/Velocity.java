@@ -5,7 +5,6 @@ import leader.event.EventManager;
 import leader.event.EventTarget;
 import leader.event.types.EventType;
 import leader.events.*;
-import leader.management.RotationState;
 import leader.mixin.IAccessorEntity;
 import leader.module.Module;
 import leader.module.modules.movement.LongJump;
@@ -20,7 +19,6 @@ import leader.util.MoveUtil;
 import leader.util.RayCastUtil;
 import leader.util.RotationUtil;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.play.client.C02PacketUseEntity;
@@ -53,6 +51,7 @@ public class Velocity extends Module {
     public final BooleanProperty jump = new BooleanProperty("Jump", true, () -> mode.getValue() == 1);
     public final BooleanProperty delay = new BooleanProperty("Delay", false, () -> mode.getValue() == 1);
     public final IntProperty delayTicks = new IntProperty("Delay Ticks", 1, 1, 5, () -> mode.getValue() == 1 && delay.getValue() && !this.airBuffer.getValue());
+    public final BooleanProperty forceDelayRisingToFalling = new BooleanProperty("Force Delay Rising To Falling",false,() -> mode.getValue() == 1 && delay.getValue() && !this.airBuffer.getValue());
     public final BooleanProperty airBuffer = new BooleanProperty("Delay Till On Ground", true, () -> mode.getValue() == 1 && delay.getValue());
     public final BooleanProperty groundDelay = new BooleanProperty("Ground Delay", false, () -> mode.getValue() == 1 && delay.getValue() && !airBuffer.getValue());
     public final BooleanProperty rotate = new BooleanProperty("Rotate", false, () -> this.mode.getValue() == 1);
@@ -67,7 +66,7 @@ public class Velocity extends Module {
     public final BooleanProperty debug = new BooleanProperty("Debug", false);
     public boolean knockback = false;
     private int chanceCounter = 0;
-    private int rotatoTickCounter = 0;
+    private int rotateTickCounter = 0;
     private boolean pendingExplosion = false;
     private boolean allowNext = true;
     private boolean delayFlag = false;
@@ -130,7 +129,7 @@ public class Velocity extends Module {
                     this.knockbackX = event.getX();
                     this.knockbackZ = event.getZ();
                     if (Math.abs(this.knockbackX) > 0.01 || Math.abs(this.knockbackZ) > 0.01) {
-                        this.rotatoTickCounter = 1;
+                        this.rotateTickCounter = 1;
                     }
                 }
                 if (mode.getValue() == 1 && smartTimes.getValue()){
@@ -197,8 +196,8 @@ public class Velocity extends Module {
         if (!isEnabled()) return;
         if (event.getType() == EventType.PRE) {
             int maxTick = this.rotateTick.getValue();
-            if (this.rotatoTickCounter > 0 && this.rotatoTickCounter <= maxTick) {
-                if (this.rotatoTickCounter == 1) {
+            if (this.rotateTickCounter > 0 && this.rotateTickCounter <= maxTick) {
+                if (this.rotateTickCounter == 1) {
                     double deltaX = -this.knockbackX;
                     double deltaZ = -this.knockbackZ;
                     this.targetRotation = RotationUtil.getRotationsTo(deltaX, 0, deltaZ, event.getYaw(), event.getPitch());
@@ -211,10 +210,10 @@ public class Velocity extends Module {
         }
         if (event.getType() == EventType.PRE){
             int maxTick = this.rotateTick.getValue();
-            if (this.rotatoTickCounter > 0 && this.rotatoTickCounter <= maxTick) {
-                this.rotatoTickCounter++;
-                if (this.rotatoTickCounter > maxTick) {
-                    this.rotatoTickCounter = 0;
+            if (this.rotateTickCounter > 0 && this.rotateTickCounter <= maxTick) {
+                this.rotateTickCounter++;
+                if (this.rotateTickCounter > maxTick) {
+                    this.rotateTickCounter = 0;
                     this.targetRotation = null;
                     this.knockbackX = 0;
                     this.knockbackZ = 0;
@@ -306,7 +305,8 @@ public class Velocity extends Module {
             }
             if (event.getType() == EventType.POST) {
                 KillAura killAura = (KillAura)Leader.moduleManager.getModule(KillAura.class);
-                if (delayFlag && ((delay.getValue()
+                if (delayFlag && (!forceDelayRisingToFalling.getValue() || mc.thePlayer.motionY <= 0.0)
+                        && ((delay.getValue()
                         && (isInLiquidOrWeb() || Leader.delayManager.getDelay() >= (long) delayTicks.getValue() && !airBuffer.getValue()) || (mc.thePlayer.onGround && !groundDelay.getValue() && !airBuffer.getValue()))
                         || (airBuffer.getValue() && mc.thePlayer.onGround && delayFlag)) || (reduceMode.getValue() == 1
                         && (killAura.autoBlock.getValue() == 0
@@ -412,7 +412,7 @@ public class Velocity extends Module {
     }
     @EventTarget
     public void onMove(MoveInputEvent event) {
-        if (this.isEnabled() && this.rotatoTickCounter > 0 && this.rotatoTickCounter <= this.rotateTick.getValue()) {
+        if (this.isEnabled() && this.rotateTickCounter > 0 && this.rotateTickCounter <= this.rotateTick.getValue()) {
             if (this.autoMove.getValue()) {
                 mc.thePlayer.movementInput.moveForward = 1.0F;
             }
@@ -431,7 +431,7 @@ public class Velocity extends Module {
     public void onEnabled() {
         knockback = false;
         hasReceivedVelocity = false;
-        this.rotatoTickCounter = 0;
+        this.rotateTickCounter = 0;
         this.targetRotation = null;
         this.knockbackX = 0;
         this.knockbackZ = 0;

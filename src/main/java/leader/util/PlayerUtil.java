@@ -185,8 +185,9 @@ public class PlayerUtil {
                             KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.modules.get(KeepSprint.class);
                             if (keepSprint.isEnabled()
                                     && keepSprint.shouldKeepSprint()) {
-                                mc.thePlayer.motionX *= 0.6 + 0.4 * (1.0 - keepSprint.slowdown.getValue().doubleValue() / 100.0);
-                                mc.thePlayer.motionZ *= 0.6 + 0.4 * (1.0 - keepSprint.slowdown.getValue().doubleValue() / 100.0);
+                                double factor = keepSprint.getSlowFactor();
+                                mc.thePlayer.motionX *= factor;
+                                mc.thePlayer.motionZ *= factor;
                             } else {
                                 mc.thePlayer.motionX *= 0.6;
                                 mc.thePlayer.motionZ *= 0.6;

@@ -502,7 +502,8 @@ public class InvManager extends Module {
                                     return;
                                 }
                             }
-                            if (secondSwordSlot != -1 && prefSecondSwordSlot >= 0 && prefSecondSwordSlot <= 8
+                            if (secondSwordSlot != -1 && secondSwordSlot != preferredSwordHotbarSlot
+                                    && prefSecondSwordSlot >= 0 && prefSecondSwordSlot <= 8
                                     && prefSecondSwordSlot != preferredSwordHotbarSlot) {
                                 usedHotbarSlots.add(prefSecondSwordSlot);
                                 if (secondSwordSlot != prefSecondSwordSlot) {
@@ -663,7 +664,8 @@ public class InvManager extends Module {
                                     }
                                 }
                                 // Disabler C09: sort second sword in Instant mode
-                                if (secondSwordSlot != -1 && prefSecondSwordSlot >= 0 && prefSecondSwordSlot <= 8
+                                if (secondSwordSlot != -1 && secondSwordSlot != prefSword
+                                        && prefSecondSwordSlot >= 0 && prefSecondSwordSlot <= 8
                                         && prefSecondSwordSlot != prefSword) {
                                     usedHotbarSlots.add(prefSecondSwordSlot);
                                     if (secondSwordSlot != prefSecondSwordSlot) {
