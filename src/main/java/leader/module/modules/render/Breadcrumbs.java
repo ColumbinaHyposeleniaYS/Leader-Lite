@@ -34,6 +34,8 @@ public class Breadcrumbs extends Module {
 
     @EventTarget
     public void onRender3D(Render3DEvent event) {
+        if (!isEnabled())return;
+
         if (mode.getValue() == 0) {
             if (mc.thePlayer.lastTickPosX != mc.thePlayer.posX || mc.thePlayer.lastTickPosY != mc.thePlayer.posY || mc.thePlayer.lastTickPosZ != mc.thePlayer.posZ) {
                 path.add(new Vec3(mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ));
@@ -46,13 +48,7 @@ public class Breadcrumbs extends Module {
             Color c2 = hud.getColor(System.currentTimeMillis() + 500);
             renderBreadCrumbs(path, c1, c2);
         } else {
-            Iterator<Map.Entry<EntityPlayer, List<Point>>> it = playerPoints.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<EntityPlayer, List<Point>> entry = it.next();
-                if (entry.getKey().isDead || !mc.theWorld.playerEntities.contains(entry.getKey())) {
-                    it.remove();
-                }
-            }
+            playerPoints.entrySet().removeIf(entry -> entry.getKey().isDead || !mc.theWorld.playerEntities.contains(entry.getKey()));
             for (EntityPlayer entityPlayer : mc.theWorld.playerEntities) {
                 List<Point> points = playerPoints.computeIfAbsent(entityPlayer, k -> new ArrayList<>());
                 boolean render = entityPlayer != mc.thePlayer || mc.gameSettings.thirdPersonView != 0;

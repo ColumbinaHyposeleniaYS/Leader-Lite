@@ -184,7 +184,7 @@ public class PlayerUtil {
                             );
                             KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.modules.get(KeepSprint.class);
                             if (keepSprint.isEnabled()
-                                    && keepSprint.shouldKeepSprint()) {
+                                    && keepSprint.isAttackNoSlow()) {
                                 double factor = keepSprint.getSlowFactor();
                                 mc.thePlayer.motionX *= factor;
                                 mc.thePlayer.motionZ *= factor;

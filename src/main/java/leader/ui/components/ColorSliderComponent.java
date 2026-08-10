@@ -36,7 +36,8 @@ public class ColorSliderComponent implements Component {
         int colorPreviewSize = 7;
         int colorPreviewX = x + width - colorPreviewSize;
         int textY = y + (Math.max(10, GuiText.height() + 3) - GuiText.height()) / 2;
-        GuiText.draw(trimText(property.getName().replace("-", " ") + ": " + ChatColors.formatColor(property.formatValue()),
+        GuiText.draw(GuiText.trimLabelValue(property.getName().replace("-", " ") + ": ",
+                        ChatColors.formatColor(property.formatValue()),
                         colorPreviewX - x - 4),
                 x, textY, new Color(215, 218, 225).getRGB());
         if (!draggingHue && !draggingSat && !draggingBri && !draggingAlp) {
@@ -128,10 +129,6 @@ public class ColorSliderComponent implements Component {
         int startX = parentModule.category.getX() + 8;
         int endX = startX + parentModule.category.getWidth() - 16;
         return mx >= startX && mx <= endX && my >= sliderY && my <= sliderY + 4;
-    }
-
-    private String trimText(String text, int maxWidth) {
-        return GuiText.trim(text, maxWidth);
     }
 
     @Override

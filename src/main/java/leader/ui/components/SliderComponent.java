@@ -47,7 +47,7 @@ public class SliderComponent implements Component {
         }
         int thumbX = Math.max(trackX, Math.min(trackX + trackW, sliderEnd));
         RenderUtil.drawRoundedRectWithGl(thumbX - 2, trackY - 2, thumbX + 2, trackY + trackH + 2, 3, new Color(238, 241, 247).getRGB());
-        GuiText.draw(trimText(this.slider.getName() + ": " + this.slider.getValueColorString(), trackW - 2),
+        GuiText.draw(GuiText.trimLabelValue(this.slider.getName() + ": ", this.slider.getValueColorString(), trackW - 2),
                 trackX, this.parentModule.category.getY() + this.offsetY + 2, new Color(205, 216, 235).getRGB());
     }
     public void setComponentStartAt(int newOffsetY) {
@@ -143,10 +143,6 @@ public class SliderComponent implements Component {
 
     public boolean isRightHalfHovered(int x, int y) {
         return x > this.x + this.parentModule.category.getWidth() / 2 && x < this.x + this.parentModule.category.getWidth() - 7 && y > this.y + 8 && y < this.y + 17;
-    }
-
-    private String trimText(String text, int maxWidth) {
-        return GuiText.trim(text, maxWidth);
     }
 
     @Override

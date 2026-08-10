@@ -36,6 +36,11 @@ public final class GuiText {
         return result.append(suffix).toString();
     }
 
+    public static String trimLabelValue(String name, String value, int maxWidth) {
+        int valueWidth = width(value);
+        return trim(name, Math.max(0, maxWidth - valueWidth)) + value;
+    }
+
     public static void drawCentered(String text, float centerX, float y, int color) {
         draw(text, centerX - width(text) / 2.0F, y, color);
     }

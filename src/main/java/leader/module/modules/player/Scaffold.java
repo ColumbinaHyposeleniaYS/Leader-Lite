@@ -43,6 +43,8 @@ public class Scaffold extends Module {
     public final IntProperty placeDelay = new IntProperty("Place Delay", 1, 0, 5);
     public final FloatProperty startRotSpeed = new FloatProperty("Start Rotate Speed", 180.0F, 1.0F, 180.0F, () -> mode.getValue() == 1);
     public final FloatProperty normalRotSpeed = new FloatProperty("Normal Rotate Speed", 180.0F, 1.0F, 180.0F, () -> mode.getValue() == 1);
+    public final FloatProperty normalModeSpeed = new FloatProperty("Normal Mode Speed", 180.0F, 1.0F, 180.0F, () -> mode.getValue() == 0);
+    public final FloatProperty legitModeSpeed = new FloatProperty("Legit Mode Speed", 180.0F, 1.0F, 180.0F, () -> mode.getValue() == 3);
     public final BooleanProperty swing = new BooleanProperty("Swing", true);
     public final BooleanProperty itemSpoof = new BooleanProperty("Item Spoof", false);
     public final BooleanProperty clutch = new BooleanProperty("Clutch", true);
@@ -614,6 +616,14 @@ public class Scaffold extends Module {
 
                 if (!legitMode && this.rotationMode.getValue() != 0 && this.mode.getValue() != 2) {
                     float targetYaw = this.yaw, targetPitch = this.pitch;
+                    if (!tellyMode) {
+                        float yawDiff = MathHelper.wrapAngleTo180_float(targetYaw - event.getYaw());
+                        float tolerance = this.normalModeSpeed.getValue();
+                        if (Math.abs(yawDiff) > tolerance) {
+                            targetYaw = RotationUtil.quantizeAngle(event.getYaw() + RotationUtil.clampAngle(yawDiff, tolerance));
+                            this.rotationTick = Math.max(this.rotationTick, 1);
+                        }
+                    } else {
                         if (tellyMode && speedLimit.getValue() && forwardRotateTicksLeft > 0) {
                             float yawDelta = MathHelper.wrapAngleTo180_float(mc.thePlayer.rotationYaw - event.getYaw());
                             this.yaw = RotationUtil.quantizeAngle(event.getYaw() + yawDelta * RandomUtil.nextFloat(0.98F, 0.99F));
@@ -648,6 +658,7 @@ public class Scaffold extends Module {
                             this.forwardRotateTicksLeft = forwardRotationTicks.getValue(); this.rotationTick = 0; this.towering = true;
                             pendingSpeedLimitRot = false; airTicks = 0;
                         }
+                    }
                     event.setRotation(targetYaw, targetPitch, 3);
                     if (this.moveFix.getValue() == 1) event.setPervRotation(targetYaw, 3);
                 } else if (this.mode.getValue() == 2 && this.rotationMode.getValue() != 0 && this.canRotate) {
@@ -660,7 +671,7 @@ public class Scaffold extends Module {
                 } else if (legitMode && this.canRotate) {
                     float targetYaw = this.yaw, targetPitch = this.pitch;
                     float yawDiff = MathHelper.wrapAngleTo180_float(targetYaw - event.getYaw());
-                    float tolerance = 180.0F;
+                    float tolerance = this.legitModeSpeed.getValue();
                     if (Math.abs(yawDiff) > tolerance) { float clampedYaw = RotationUtil.clampAngle(yawDiff, tolerance); targetYaw = RotationUtil.quantizeAngle(event.getYaw() + clampedYaw); this.rotationTick = Math.max(this.rotationTick, 1); }
                     event.setRotation(targetYaw, targetPitch, 3);
                     if (this.moveFix.getValue() == 1) event.setPervRotation(targetYaw, 3);

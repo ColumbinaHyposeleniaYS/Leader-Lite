@@ -38,6 +38,7 @@ public class NoSlow extends Module {
     public final BooleanProperty tick1 = new BooleanProperty("Tick 1", true, () -> swordMode.getValue() == 4);
     public final BooleanProperty tick2 = new BooleanProperty("Tick 2", false, () -> swordMode.getValue() == 4);
     public final BooleanProperty tick3 = new BooleanProperty("Tick 3", false, () -> swordMode.getValue() == 4);
+    public final BooleanProperty tick4 = new BooleanProperty("Tick 4", false, () -> swordMode.getValue() == 4);
     public final BooleanProperty slowOnRelease = new BooleanProperty("SlowOnRelease",true,() -> this.swordMode.getValue() == 3);
     public final IntProperty swapDelay = new IntProperty("Slow Delay", 0, 0, 3, () -> swordMode.getValue() == 3);
     public final PercentProperty swordMotion = new PercentProperty("Sword Motion", 100, () -> this.swordMode.getValue() != 0);
@@ -84,7 +85,7 @@ public class NoSlow extends Module {
     }
 
     public boolean isAnyActive() {
-        if (this.swordMode.getValue() != 2 && this.swordMode.getValue() != 3 && this.swordMode.getValue() != 4) {
+        if (this.swordMode.getValue() != 2 && this.swordMode.getValue() != 3 && this.swordMode.getValue() != 4 && this.swordMode.getValue() != 5) {
             return mc.thePlayer.isUsingItem() && (this.isSwordActive() || this.isFoodActive() || this.isBowActive());
         } else if (this.swordMode.getValue() == 2 && isSwordActive()) {
             return blinkDelay == 2;
@@ -99,7 +100,10 @@ public class NoSlow extends Module {
                 && ((tick0.getValue() && killAura.blockTick == 0)
                     || (tick1.getValue() && killAura.blockTick == 1)
                     || (tick2.getValue() && killAura.blockTick == 2)
-                    || (tick3.getValue() && killAura.blockTick == 3));
+                    || (tick3.getValue() && killAura.blockTick == 3)
+                    || (tick4.getValue() && killAura.blockTick == 4));
+        }else if (this.swordMode.getValue() == 5 && isSwordActive()) {
+           return swapped;
         }
         return false;
     }

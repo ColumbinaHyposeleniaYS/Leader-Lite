@@ -35,8 +35,7 @@ public class ModeComponent implements Component {
         RenderUtil.drawRoundedRectWithGl(x, y + 1, x + w, y + getHeight() - 1, 4, new Color(255, 255, 255, 14).getRGB());
 
         String mode = this.property.getModeString().replace("_", " ");
-        String text = this.property.getName() + ": " + mode;
-        GuiText.draw(trimText(text, w - 4), x + 2, textY, new Color(215, 218, 225).getRGB());
+        GuiText.draw(GuiText.trimLabelValue(this.property.getName() + ": ", mode, w - 4), x + 2, textY, new Color(215, 218, 225).getRGB());
     }
 
     public void update(int mousePosX, int mousePosY) {
@@ -71,10 +70,6 @@ public class ModeComponent implements Component {
 
     private boolean isHovered(int x, int y) {
         return x > this.x + 6 && x < this.x + this.parentModule.category.getWidth() - 6 && y > this.y && y < this.y + 11;
-    }
-
-    private String trimText(String text, int maxWidth) {
-        return GuiText.trim(text, maxWidth);
     }
 
     @Override

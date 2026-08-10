@@ -37,8 +37,8 @@ public class BindComponent implements Component {
         int color = isBinding ? new Color(70, 132, 220, 210).getRGB() : new Color(255, 255, 255, 10).getRGB();
 
         RenderUtil.drawRoundedRectWithGl(x, y + 1, x + w, y + h, 4, color);
-        String displayText = this.isBinding ? "Press a key" : "Bind · " + KeyBindUtil.getKeyName(this.parentModule.mod.getKey());
-        displayText = trimText(displayText, Math.max(0, w - 4));
+        String displayText = this.isBinding ? "Press a key" : GuiText.trimLabelValue("Bind · ",
+                KeyBindUtil.getKeyName(this.parentModule.mod.getKey()), Math.max(0, w - 4));
         GuiText.draw(displayText, x + 2, y + (getHeight() - GuiText.height()) / 2,
                 isBinding ? 0xFFFFFFFF : new Color(196, 208, 228).getRGB());
     }
@@ -97,10 +97,6 @@ public class BindComponent implements Component {
 
     public int getHeight() {
         return Math.max(16, GuiText.height() + 7);
-    }
-
-    private String trimText(String text, int maxWidth) {
-        return GuiText.trim(text, maxWidth);
     }
 
     @Override

@@ -41,6 +41,7 @@ public class Velocity extends Module {
     public final ModeProperty reduceMode = new ModeProperty("ReduceMode", 0, new String[]{"Attack", "ReleaseWhenCanAttack","ReleaseBeforeCanAttack"}, () -> mode.getValue() == 1 && reduce.getValue());
     private final BooleanProperty extraAttack = new BooleanProperty("ExtraAttack", false, () -> mode.getValue() == 1 && reduce.getValue() && reduceMode.getValue() != 0);
     private final BooleanProperty reduceWhenCanAttack = new BooleanProperty("Reduce When Can Attack", true, () -> mode.getValue() == 1 && reduce.getValue() && reduceMode.getValue() == 0);
+    public final BooleanProperty cancelKillAuraAttack = new BooleanProperty("CancelKillAuraAttack", false, () -> mode.getValue() == 1 && reduce.getValue() && reduceMode.getValue() == 0);
     private final BooleanProperty onlySprinting = new BooleanProperty("Only Sprinting", true, () -> mode.getValue() == 1 && reduceMode.getValue() == 0 && reduce.getValue());
     public final BooleanProperty smartTimes = new BooleanProperty("SmartTimes",true, () -> this.mode.getValue() == 1 && this.reduce.getValue() && reduceMode.getValue() == 0);
     public final IntProperty attackTimes = new IntProperty("Attack Times", 1, 1, 5, () -> this.mode.getValue() == 1 && this.reduce.getValue() && reduceMode.getValue() == 0 && !smartTimes.getValue());
@@ -77,10 +78,11 @@ public class Velocity extends Module {
     private double knockbackX = 0;
     private float[] targetRotation = null;
     private double knockbackZ = 0;
-    private int reduceTick = -1;
+    public int reduceTick = -1;
     public int hitCount;
     public static boolean extraAttacked,velocityAttacked = false;
     public static boolean stoppedBlock = false;
+    public static boolean cancellingKillAuraAttack = false;
     public Velocity() {
         super("Velocity", false, false);
     }
@@ -195,6 +197,7 @@ public class Velocity extends Module {
     public void onUpdate(UpdateEvent event) {
         if (!isEnabled()) return;
         if (event.getType() == EventType.PRE) {
+            cancellingKillAuraAttack = false;
             int maxTick = this.rotateTick.getValue();
             if (this.rotateTickCounter > 0 && this.rotateTickCounter <= maxTick) {
                 if (this.rotateTickCounter == 1) {
@@ -264,15 +267,8 @@ public class Velocity extends Module {
                                     KillAura killAura = (KillAura) Leader.moduleManager.getModule(KillAura.class);
                                     if (killAura.getTarget() != null) {
                                         if (!reduceWhenCanAttack.getValue()
-                                                || killAura.autoBlock.getValue() == 0
-                                                || killAura.autoBlock.getValue() == 1
-                                                || killAura.autoBlock.getValue() == 8
-                                                || (killAura.autoBlock.getValue() == 2 && killAura.blockTick == 0)
-                                                || (killAura.autoBlock.getValue() == 3 && killAura.blockTick == 0)
-                                                || (killAura.autoBlock.getValue() == 4 && killAura.blockTick == killAura.attackTick.getValue())
-                                                || (killAura.autoBlock.getValue() == 5 && (killAura.blockTick == 0 || killAura.blockTick == 2))
-                                                || (killAura.autoBlock.getValue() == 6 && (killAura.blockTick == 0 || killAura.blockTick == 2))
-                                                || (killAura.autoBlock.getValue() == 7 && killAura.blockTick == 0)) {
+                                                || killAura.velocityCanReduce(0, killAura.blockTick)) {
+                                            if (cancelKillAuraAttack.getValue()) cancellingKillAuraAttack = true;
                                             EventManager.call(new AttackEvent(killAura.getTarget()));
                                             mc.getNetHandler().addToSendQueue(new C0APacketAnimation());
                                             if (killAura.getTarget() != mc.thePlayer) {
@@ -285,6 +281,7 @@ public class Velocity extends Module {
                                             if (!keepSprint.getValue()) mc.thePlayer.setSprinting(false);
                                         }
                                     } else {
+                                        if (cancelKillAuraAttack.getValue()) cancellingKillAuraAttack = true;
                                         EventManager.call(new AttackEvent(targetA.entityHit));
                                         mc.getNetHandler().addToSendQueue(new C0APacketAnimation());
                                         if (targetA.entityHit != mc.thePlayer) {
@@ -309,25 +306,9 @@ public class Velocity extends Module {
                         && ((delay.getValue()
                         && (isInLiquidOrWeb() || Leader.delayManager.getDelay() >= (long) delayTicks.getValue() && !airBuffer.getValue()) || (mc.thePlayer.onGround && !groundDelay.getValue() && !airBuffer.getValue()))
                         || (airBuffer.getValue() && mc.thePlayer.onGround && delayFlag)) || (reduceMode.getValue() == 1
-                        && (killAura.autoBlock.getValue() == 0
-                            || killAura.autoBlock.getValue() == 1
-                            || killAura.autoBlock.getValue() == 8
-                            || (killAura.autoBlock.getValue() == 2 && killAura.blockTick == 0)
-                            || (killAura.autoBlock.getValue() == 3 && killAura.blockTick == 0)
-                            || (killAura.autoBlock.getValue() == 4 && killAura.blockTick == killAura.attackTick.getValue() % Math.max(1, killAura.maxTick.getValue() - 1))
-                            || (killAura.autoBlock.getValue() == 5 && killAura.blockTick == 0)
-                            || (killAura.autoBlock.getValue() == 6 && killAura.blockTick == 0)
-                            || (killAura.autoBlock.getValue() == 7 && killAura.blockTick == 0))
+                        && killAura.velocityCanReduce(1, killAura.blockTick)
                         && killAura.shouldAutoBlock() && reduce.getValue()) || (reduceMode.getValue() == 2
-                        && (killAura.autoBlock.getValue() == 0
-                            || killAura.autoBlock.getValue() == 1
-                            || killAura.autoBlock.getValue() == 8
-                            || (killAura.autoBlock.getValue() == 2 && killAura.blockTick == 2)
-                            || (killAura.autoBlock.getValue() == 3 && killAura.blockTick == 2)
-                            || (killAura.autoBlock.getValue() == 4 && killAura.blockTick == (killAura.attackTick.getValue() - 2 + killAura.maxTick.getValue() - 1) % Math.max(1, killAura.maxTick.getValue() - 1))
-                            || (killAura.autoBlock.getValue() == 5 && killAura.blockTick == 1)
-                            || (killAura.autoBlock.getValue() == 6 && killAura.blockTick == 2)
-                            || (killAura.autoBlock.getValue() == 7 && killAura.blockTick == 1))
+                        && killAura.velocityCanReduce(2, killAura.blockTick)
                         && killAura.shouldAutoBlock() && reduce.getValue())) {
                     ticksSinceVelocity = 0;
                     if (killAura.getTarget() != null) {
@@ -444,6 +425,7 @@ public class Velocity extends Module {
         allowNext = true;
         hasReceivedVelocity = false;
         knockback = false;
+        cancellingKillAuraAttack = false;
     }
     @Override
     public String[] getSuffix() {

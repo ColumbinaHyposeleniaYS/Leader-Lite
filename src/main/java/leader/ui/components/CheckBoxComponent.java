@@ -33,7 +33,8 @@ public class CheckBoxComponent implements Component {
         int rowW = module.category.getWidth() - 16;
         int textY = rowY + (getHeight() - GuiText.height()) / 2;
         RenderUtil.drawRoundedRectWithGl(rowX, rowY + 1, rowX + rowW, rowY + getHeight() - 1, 4, new Color(255, 255, 255, 14).getRGB());
-        GuiText.draw(trimText(this.property.getName().replace("-", " ") + ": " + ChatColors.formatColor(this.property.formatValue()), rowW - 4),
+        GuiText.draw(GuiText.trimLabelValue(this.property.getName().replace("-", " ") + ": ",
+                        ChatColors.formatColor(this.property.formatValue()), rowW - 4),
                 rowX + 2, textY, new Color(215, 218, 225).getRGB());
     }
 
@@ -65,10 +66,6 @@ public class CheckBoxComponent implements Component {
 
     public boolean isHovered(int x, int y) {
         return x > this.x + 6 && x < this.x + this.module.category.getWidth() - 6 && y > this.y && y < this.y + 11;
-    }
-
-    private String trimText(String text, int maxWidth) {
-        return GuiText.trim(text, maxWidth);
     }
 
     @Override

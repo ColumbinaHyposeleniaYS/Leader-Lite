@@ -26,7 +26,7 @@ public abstract class MixinEntityPlayer extends MixinEntityLivingBase {
             return speed;
         }
         KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.modules.get(KeepSprint.class);
-        return keepSprint.isEnabled() && keepSprint.shouldKeepSprint()
+        return keepSprint.isEnabled() && keepSprint.isAttackNoSlow()
                 ? keepSprint.getSlowFactor()
                 : speed;
     }
