@@ -13,19 +13,41 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CustomFontRenderer {
+
+    private static final String[] FALLBACK_FONT_NAMES = {
+            "Microsoft YaHei", "Microsoft YaHei UI", "Microsoft JhengHei", "SimSun", "NSimSun",
+            "Segoe UI Emoji", "Segoe UI Symbol", "Arial Unicode MS", "Noto Sans CJK SC",
+            "WenQuanYi Micro Hei", "PingFang SC", "SansSerif"
+    };
 
     private static final Minecraft mc = Minecraft.getMinecraft();
     private final boolean antiAlias;
     private final byte[][] charWidths = new byte[256][];
     private final int[] textures = new int[256];
+    private final Map<Integer, CodePointGlyph> glyphCache = new HashMap<>();
+    private final Map<Integer, Font> fallbackFontCache = new HashMap<>();
     private final FontRenderContext context;
     private Font font;
     private int fontWidth;
     private int fontHeight;
     private int textureWidth;
     private int textureHeight;
+
+    private static class CodePointGlyph {
+        final int textureId;
+        final int width;
+        final int height;
+
+        CodePointGlyph(int textureId, int width, int height) {
+            this.textureId = textureId;
+            this.width = width;
+            this.height = height;
+        }
+    }
 
     public CustomFontRenderer(String resourcePath, float size, boolean antiAlias) {
         this.antiAlias = antiAlias;
@@ -43,8 +65,8 @@ public class CustomFontRenderer {
         }
         context = new FontRenderContext(font.getTransform(), antiAlias, antiAlias);
         Rectangle2D maxBounds = font.getMaxCharBounds(context);
-        this.fontWidth = (int) Math.ceil(maxBounds.getWidth());
-        this.fontHeight = (int) Math.ceil(maxBounds.getHeight());
+        this.fontWidth = Math.max(1, (int) Math.ceil(maxBounds.getWidth()));
+        this.fontHeight = Math.max(1, (int) Math.ceil(maxBounds.getHeight()));
         this.textureWidth = nextPowerOfTwo(fontWidth * 16);
         this.textureHeight = nextPowerOfTwo(fontHeight * 16);
     }
@@ -55,8 +77,8 @@ public class CustomFontRenderer {
         Arrays.fill(textures, -1);
         context = new FontRenderContext(font.getTransform(), antiAlias, antiAlias);
         Rectangle2D maxBounds = font.getMaxCharBounds(context);
-        this.fontWidth = (int) Math.ceil(maxBounds.getWidth());
-        this.fontHeight = (int) Math.ceil(maxBounds.getHeight());
+        this.fontWidth = Math.max(1, (int) Math.ceil(maxBounds.getWidth()));
+        this.fontHeight = Math.max(1, (int) Math.ceil(maxBounds.getHeight()));
         this.textureWidth = nextPowerOfTwo(fontWidth * 16);
         this.textureHeight = nextPowerOfTwo(fontHeight * 16);
     }
@@ -91,13 +113,16 @@ public class CustomFontRenderer {
         GL11.glPushMatrix();
         GL11.glScaled(0.5, 0.5, 0.5);
         int[] mcColors = ((FontRendererAccessor) mc.fontRendererObj).getColorCode();
-        char[] chars = text.toCharArray();
         int offset = 0;
-        for (int i = 0; i < chars.length; i++) {
-            char chr = chars[i];
-            if (chr == '\u00a7' && i != chars.length - 1) {
-                i++;
-                int colorIndex = "0123456789abcdef".indexOf(chars[i]);
+        int i = 0;
+        int len = text.length();
+        while (i < len) {
+            int cp = text.codePointAt(i);
+            i += Character.charCount(cp);
+            if (cp == '\u00a7' && i < len) {
+                int ci = text.codePointAt(i);
+                i += Character.charCount(ci);
+                int colorIndex = "0123456789abcdef".indexOf(ci);
                 if (colorIndex != -1) {
                     if (darken) colorIndex |= 0x10;
                     int mcColor = mcColors[colorIndex];
@@ -108,7 +133,7 @@ public class CustomFontRenderer {
                 }
                 continue;
             }
-            offset += drawChar(chr, x + offset, y);
+            offset += drawChar(cp, x + offset, y);
         }
         GL11.glPopMatrix();
     }
@@ -118,9 +143,12 @@ public class CustomFontRenderer {
         return (int) posX;
     }
 
-    private int drawChar(char chr, float x, float y) {
-        int region = chr >> 8;
-        int id = chr & 0xFF;
+    private int drawChar(int codePoint, float x, float y) {
+        if (codePoint > 0xFFFF || !font.canDisplay(codePoint)) {
+            return drawCodePointGlyph(codePoint, x, y);
+        }
+        int region = codePoint >> 8;
+        int id = codePoint & 0xFF;
         int xTexCoord = (id & 0xF) * fontWidth;
         int yTexCoord = (id >> 4) * fontHeight;
         int width = getOrGenerateCharWidthMap(region)[id] & 0xFF;
@@ -141,16 +169,43 @@ public class CustomFontRenderer {
         return width;
     }
 
+    private int drawCodePointGlyph(int codePoint, float x, float y) {
+        CodePointGlyph glyph = getOrGenerateGlyph(codePoint);
+        GlStateManager.bindTexture(glyph.textureId);
+        GlStateManager.enableTexture2D();
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        int tw = nextPowerOfTwo(glyph.width);
+        int th = nextPowerOfTwo(glyph.height);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glTexCoord2d(0.0D, 0.0D);
+        GL11.glVertex2f(x, y);
+        GL11.glTexCoord2d(0.0D, (double) glyph.height / th);
+        GL11.glVertex2f(x, y + glyph.height);
+        GL11.glTexCoord2d((double) glyph.width / tw, (double) glyph.height / th);
+        GL11.glVertex2f(x + glyph.width, y + glyph.height);
+        GL11.glTexCoord2d((double) glyph.width / tw, 0.0D);
+        GL11.glVertex2f(x + glyph.width, y);
+        GL11.glEnd();
+        return glyph.width;
+    }
+
     public int getStringWidth(String text) {
         if (text == null) return 0;
         int width = 0;
-        char[] chars = text.toCharArray();
-        for (int i = 0; i < chars.length; i++) {
-            char chr = chars[i];
-            if (chr == '\u00a7') {
-                i++;
+        int i = 0;
+        int len = text.length();
+        while (i < len) {
+            int cp = text.codePointAt(i);
+            i += Character.charCount(cp);
+            if (cp == '\u00a7') {
+                if (i < len) {
+                    i += Character.charCount(text.codePointAt(i));
+                }
+            } else if (cp > 0xFFFF || !font.canDisplay(cp)) {
+                width += getOrGenerateGlyph(cp).width;
             } else {
-                width += getOrGenerateCharWidthMap(chr >> 8)[chr & 0xFF] & 0xFF;
+                width += getOrGenerateCharWidthMap(cp >> 8)[cp & 0xFF] & 0xFF;
             }
         }
         return width / 2;
@@ -172,9 +227,11 @@ public class CustomFontRenderer {
         this.font = font;
         Arrays.fill(textures, -1);
         Arrays.fill(charWidths, null);
+        glyphCache.clear();
+        fallbackFontCache.clear();
         Rectangle2D maxBounds = font.getMaxCharBounds(context);
-        this.fontWidth = (int) Math.ceil(maxBounds.getWidth());
-        this.fontHeight = (int) Math.ceil(maxBounds.getHeight());
+        this.fontWidth = Math.max(1, (int) Math.ceil(maxBounds.getWidth()));
+        this.fontHeight = Math.max(1, (int) Math.ceil(maxBounds.getHeight()));
         this.textureWidth = nextPowerOfTwo(fontWidth * 16);
         this.textureHeight = nextPowerOfTwo(fontHeight * 16);
     }
@@ -192,6 +249,65 @@ public class CustomFontRenderer {
         if (newFont != null) {
             setFont(newFont, antiAlias);
         }
+    }
+
+    private Font getFontForCodePoint(int codePoint) {
+        if (font.canDisplay(codePoint)) return font;
+        Font cached = fallbackFontCache.get(codePoint);
+        if (cached != null) return cached;
+        int size = Math.max(1, Math.round(font.getSize2D()));
+        for (String name : FALLBACK_FONT_NAMES) {
+            Font candidate = new Font(name, Font.PLAIN, size);
+            if (candidate.canDisplay(codePoint)) {
+                fallbackFontCache.put(codePoint, candidate);
+                return candidate;
+            }
+        }
+        fallbackFontCache.put(codePoint, font);
+        return font;
+    }
+
+    private CodePointGlyph getOrGenerateGlyph(int codePoint) {
+        CodePointGlyph cached = glyphCache.get(codePoint);
+        if (cached != null) return cached;
+        Font renderFont = getFontForCodePoint(codePoint);
+        String str = new String(Character.toChars(codePoint));
+        Rectangle2D bounds = renderFont.getStringBounds(str, context);
+        int gw = Math.max(1, (int) Math.ceil(bounds.getWidth()));
+        int gh = Math.max(1, (int) Math.ceil(bounds.getHeight()));
+        int tw = nextPowerOfTwo(gw);
+        int th = nextPowerOfTwo(gh);
+        BufferedImage img = new BufferedImage(tw, th, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = img.createGraphics();
+        if (antiAlias) {
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        }
+        g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        g.setFont(renderFont);
+        g.setColor(Color.WHITE);
+        g.drawString(str, 0, (int) Math.ceil(-bounds.getY()));
+        g.dispose();
+        int textureId = GL11.glGenTextures();
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_CLAMP);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_CLAMP);
+        int[] pixels = img.getRGB(0, 0, tw, th, null, 0, tw);
+        ByteBuffer buf = ByteBuffer.allocateDirect(pixels.length * 4).order(ByteOrder.nativeOrder());
+        for (int pixel : pixels) {
+            buf.put((byte) ((pixel >> 16) & 0xFF));
+            buf.put((byte) ((pixel >> 8) & 0xFF));
+            buf.put((byte) (pixel & 0xFF));
+            buf.put((byte) ((pixel >> 24) & 0xFF));
+        }
+        buf.flip();
+        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, tw, th, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buf);
+        GlStateManager.bindTexture(0);
+        CodePointGlyph glyph = new CodePointGlyph(textureId, gw, gh);
+        glyphCache.put(codePoint, glyph);
+        return glyph;
     }
 
     private int generateCharTexture(int id) {
@@ -273,6 +389,11 @@ public class CustomFontRenderer {
                 textures[i] = -1;
             }
         }
+        for (CodePointGlyph glyph : glyphCache.values()) {
+            GL11.glDeleteTextures(glyph.textureId);
+        }
+        glyphCache.clear();
+        fallbackFontCache.clear();
     }
 
     @Override

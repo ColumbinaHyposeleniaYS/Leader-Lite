@@ -103,7 +103,7 @@ public class NoSlow extends Module {
                     || (tick3.getValue() && killAura.blockTick == 3)
                     || (tick4.getValue() && killAura.blockTick == 4));
         }else if (this.swordMode.getValue() == 5 && isSwordActive()) {
-           return swapped;
+           return !swapped;
         }
         return false;
     }

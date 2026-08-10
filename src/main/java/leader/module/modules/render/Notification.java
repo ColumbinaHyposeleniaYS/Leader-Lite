@@ -26,7 +26,7 @@ public class Notification extends Module {
     private static final List<NotificationEntry> entries = new ArrayList<>();
 
     public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"RIGHT", "LEFT"});
-    public final ModeProperty style = new ModeProperty("style", 1, new String[]{"CLASSIC", "MODERN"});
+    public final ModeProperty style = new ModeProperty("style", 1, new String[]{"CLASSIC", "MODERN", "NEON"});
     public final IntProperty duration = new IntProperty("duration", 1500, 500, 5000);
     public final IntProperty maxAlerts = new IntProperty("max-alerts", 5, 1, 10);
     public final FloatProperty scale = new FloatProperty("scale", 1.0F, 0.5F, 1.5F);
@@ -79,6 +79,10 @@ public class Notification extends Module {
 
         if (this.style.getValue() == 1) {
             renderModern(sr, now, dur);
+            return;
+        }
+        if (this.style.getValue() == 2) {
+            renderNeon(sr, now, dur);
             return;
         }
 
@@ -252,6 +256,83 @@ public class Notification extends Module {
             GlStateManager.popMatrix();
 
             drawStatusIcon(x + cardWidth - 20.0F, y + 10.0F, 8.0F, entry.enabled, themeColor, alpha);
+
+            GlStateManager.enableDepth();
+            GlStateManager.disableBlend();
+        }
+
+        GlStateManager.popMatrix();
+    }
+
+    private void renderNeon(ScaledResolution sr, long now, long dur) {
+        float cardWidth = 150.0F;
+        float cardHeight = 32.0F;
+        float gap = 4.0F;
+        float radius = 4.0F;
+        float textScale = this.fontScale.getValue();
+        float offX = this.offsetX.getValue() + 6.0F;
+        float offY = this.offsetY.getValue() + 8.0F;
+        boolean isRight = this.mode.getValue() == 0;
+        boolean doBlur = this.blur.getValue();
+        float invScale = 1.0F / this.scale.getValue();
+        int max = Math.min(entries.size(), this.maxAlerts.getValue());
+        float baseX = isRight ? sr.getScaledWidth() - cardWidth - offX : offX;
+        float baseY = sr.getScaledHeight() - offY - cardHeight;
+        float step = cardHeight + gap;
+
+        GlStateManager.pushMatrix();
+        GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
+
+        for (int i = 0; i < max; i++) {
+            NotificationEntry entry = entries.get(i);
+            float progress = Math.min((float) (now - entry.startTime) / (float) dur, 1.0F);
+            float alpha = Math.max(0.0F, Math.min(1.0F, getAlpha(now, entry.startTime, dur)));
+            int idx = max - 1 - i;
+            float slide = (1.0F - alpha) * 16.0F;
+            float x = (baseX + (isRight ? slide : -slide)) * invScale;
+            float y = (baseY - idx * step) * invScale;
+            Color themeColor = entry.enabled ? new Color(64, 224, 208) : new Color(255, 90, 95);
+            int neonR = themeColor.getRed();
+            int neonG = themeColor.getGreen();
+            int neonB = themeColor.getBlue();
+
+            if (doBlur) {
+                final float bx = x;
+                final float by = y;
+                ShaderElement.addBlurTask(() -> RenderUtil.drawRoundedRectWithGl(bx, by, bx + cardWidth, by + cardHeight, radius, -1));
+            }
+
+            RenderUtil.enableRenderState();
+            RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 2.0F, x + cardWidth + 1.0F, y + cardHeight + 2.0F, radius, new Color(0, 0, 0, (int) (44.0F * alpha)).getRGB());
+            RenderUtil.drawRoundedRectWithGl(x, y, x + cardWidth, y + cardHeight, radius, new Color(11, 13, 19, (int) (210.0F * alpha)).getRGB());
+            RenderUtil.drawRoundedRectWithGl(x, y + 7.0F, x + 2.0F, y + cardHeight - 7.0F, 1.0F, new Color(neonR, neonG, neonB, (int) (240.0F * alpha)).getRGB());
+
+            float barX1 = x + 8.0F;
+            float barX2 = x + cardWidth - 8.0F;
+            float barY = y + cardHeight - 7.0F;
+            float barH = 3.0F;
+            RenderUtil.drawRect(barX1, barY, barX2, barY + barH, new Color(255, 255, 255, (int) (55.0F * alpha)).getRGB());
+            float fillW = (barX2 - barX1) * (1.0F - progress);
+            float fillLeft = barX2 - fillW;
+            RenderUtil.drawRect(fillLeft, barY, barX2, barY + barH, new Color(neonR, neonG, neonB, (int) (255.0F * alpha)).getRGB());
+            RenderUtil.drawRect(fillLeft - 2.5F, barY - 1.0F, fillLeft + 0.5F, barY + barH + 1.0F, new Color(255, 255, 255, (int) (220.0F * alpha)).getRGB());
+            RenderUtil.disableRenderState();
+
+            GlStateManager.disableDepth();
+            GlStateManager.enableBlend();
+            GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+            int nameColor = new Color(240, 244, 250, (int) (245.0F * alpha)).getRGB();
+            int stateColor = new Color(neonR, neonG, neonB, (int) (245.0F * alpha)).getRGB();
+            String stateText = entry.enabled ? "ON" : "OFF";
+            float textHeight = FontManager.getFontHeight() * textScale;
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(x + 10.0F, y + (cardHeight - textHeight) / 2.0F - 1.0F, 0.0F);
+            GlStateManager.scale(textScale, textScale, 1.0F);
+            FontManager.drawString(entry.moduleName, 0.0F, 0.0F, nameColor, false);
+            float stateWidth = FontManager.getStringWidth(stateText);
+            FontManager.drawString(stateText, (cardWidth - 18.0F) / textScale - stateWidth, 0.0F, stateColor, false);
+            GlStateManager.popMatrix();
 
             GlStateManager.enableDepth();
             GlStateManager.disableBlend();
