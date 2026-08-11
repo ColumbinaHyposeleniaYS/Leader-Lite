@@ -1,6 +1,7 @@
 package leader.mixin;
 
 import leader.Leader;
+import leader.module.modules.combat.Velocity;
 import leader.module.modules.player.KeepSprint;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.fml.relauncher.Side;
@@ -25,6 +26,9 @@ public abstract class MixinEntityPlayer extends MixinEntityLivingBase {
         if (Leader.moduleManager == null) {
             return speed;
         }
+        if (Velocity.blinkActive) {
+            return 1.0;
+        }
         KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.modules.get(KeepSprint.class);
         return keepSprint.isEnabled() && keepSprint.isAttackNoSlow()
                 ? keepSprint.getSlowFactor()
@@ -40,6 +44,9 @@ public abstract class MixinEntityPlayer extends MixinEntityLivingBase {
     )
     private void setSprinnt(EntityPlayer entityPlayer, boolean boolean2) {
         if (Leader.moduleManager != null) {
+            if (Velocity.blinkActive) {
+                return;
+            }
             KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.modules.get(KeepSprint.class);
             if (!keepSprint.isEnabled() || !keepSprint.shouldKeepSprint()) {
                 entityPlayer.setSprinting(boolean2);

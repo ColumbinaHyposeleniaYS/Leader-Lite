@@ -63,6 +63,7 @@ public class Leader {
         EventManager.register(moduleManager);
         EventManager.register(commandManager);
         moduleManager.modules.put(Animations.class, new Animations());
+        moduleManager.modules.put(AutoProjectiles.class, new AutoProjectiles());
         moduleManager.modules.put(AimAssist.class, new AimAssist());
         moduleManager.modules.put(AntiAFK.class, new AntiAFK());
         moduleManager.modules.put(AntiDebuff.class, new AntiDebuff());

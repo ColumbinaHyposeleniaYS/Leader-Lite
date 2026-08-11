@@ -28,7 +28,10 @@ import net.minecraft.network.play.server.S19PacketEntityStatus;
 import net.minecraft.network.play.server.S27PacketExplosion;
 import net.minecraft.potion.Potion;
 import leader.Leader;
+import leader.enums.BlinkModules;
 import leader.enums.DelayModules;
+import leader.module.modules.player.KeepSprint;
+import leader.util.PacketUtil;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 
@@ -38,7 +41,10 @@ public class Velocity extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
     public final ModeProperty mode = new ModeProperty("Mode", 0, new String[]{"Vanilla","Prediction"});
     public final BooleanProperty reduce = new BooleanProperty("Reduce", true, () -> mode.getValue() == 1);
-    public final ModeProperty reduceMode = new ModeProperty("ReduceMode", 0, new String[]{"Attack", "ReleaseWhenCanAttack","ReleaseBeforeCanAttack"}, () -> mode.getValue() == 1 && reduce.getValue());
+    public final ModeProperty reduceMode = new ModeProperty("ReduceMode", 0, new String[]{"Attack", "ReleaseWhenCanAttack", "ReleaseBeforeCanAttack", "Blink"}, () -> mode.getValue() == 1 && reduce.getValue());
+    public final IntProperty startBlinkHurtTime = new IntProperty("StartBlinkHurtTime", 1, 0, 10, () -> mode.getValue() == 1 && reduce.getValue() && reduceMode.getValue() == 3);
+    public final IntProperty startReleaseTicks = new IntProperty("StartReleaseTicks", 1, 0, 5, () -> mode.getValue() == 1 && reduce.getValue() && reduceMode.getValue() == 3);
+    public final BooleanProperty forceBlocking = new BooleanProperty("ForceBlocking", true, () -> mode.getValue() == 1 && reduce.getValue() && reduceMode.getValue() == 3);
     private final BooleanProperty extraAttack = new BooleanProperty("ExtraAttack", false, () -> mode.getValue() == 1 && reduce.getValue() && reduceMode.getValue() != 0);
     private final BooleanProperty reduceWhenCanAttack = new BooleanProperty("Reduce When Can Attack", true, () -> mode.getValue() == 1 && reduce.getValue() && reduceMode.getValue() == 0);
     public final BooleanProperty cancelKillAuraAttack = new BooleanProperty("CancelKillAuraAttack", false, () -> mode.getValue() == 1 && reduce.getValue() && reduceMode.getValue() == 0);
@@ -83,6 +89,10 @@ public class Velocity extends Module {
     public static boolean extraAttacked,velocityAttacked = false;
     public static boolean stoppedBlock = false;
     public static boolean cancellingKillAuraAttack = false;
+    public static boolean blinkActive = false;
+    private boolean blinkingVelocity = false;
+    private boolean blinkScheduled = false;
+    private int knockbackTimer = -1;
     public Velocity() {
         super("Velocity", false, false);
     }
@@ -224,6 +234,38 @@ public class Velocity extends Module {
             }
         }
         if (mode.getValue() == 1) {
+            if (reduce.getValue() && reduceMode.getValue() == 3 && event.getType() == EventType.PRE) {
+                if (knockbackTimer >= 0) {
+                    knockbackTimer++;
+                }
+                if (blinkingVelocity) {
+                    if (knockbackTimer >= startReleaseTicks.getValue()) {
+                        releaseVelocityBlink();
+                    }
+                } else if (knockback && mc.thePlayer.hurtTime <= startBlinkHurtTime.getValue()) {
+                    if (forceBlocking.getValue()) {
+                        KillAura killAura = (KillAura) Leader.moduleManager.getModule(KillAura.class);
+                        if (killAura != null && killAura.isEnabled() && killAura.isPlayerBlocking()) {
+                            startVelocityBlink();
+                        } else {
+                            blinkScheduled = true;
+                        }
+                    } else {
+                        startVelocityBlink();
+                    }
+                } else if (blinkScheduled) {
+                    if (knockbackTimer >= startReleaseTicks.getValue()) {
+                        blinkScheduled = false;
+                        knockback = false;
+                        knockbackTimer = -1;
+                    } else {
+                        KillAura killAura = (KillAura) Leader.moduleManager.getModule(KillAura.class);
+                        if (killAura != null && killAura.isEnabled() && killAura.isPlayerBlocking()) {
+                            startVelocityBlink();
+                        }
+                    }
+                }
+            }
             if (reduce.getValue() && reduceMode.getValue() == 0) {
                 if (event.getType() == EventType.PRE) {
                     if (velocityAttacked) {
@@ -333,6 +375,41 @@ public class Velocity extends Module {
         }
     }
 
+    private void startVelocityBlink() {
+        if (Leader.blinkManager.setBlinkState(true, BlinkModules.VELOCITY)) {
+            blinkingVelocity = true;
+            blinkActive = true;
+            blinkScheduled = false;
+        }
+    }
+
+    private void releaseVelocityBlink() {
+        if (!blinkingVelocity) return;
+        boolean wasActive = blinkActive;
+        blinkActive = false;
+        KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.getModule(KeepSprint.class);
+        double factor = keepSprint != null && keepSprint.isEnabled() ? keepSprint.getSlowFactor() : 0.6;
+        blinkActive = wasActive;
+        boolean wasBlinking = Leader.blinkManager.isBlinking();
+        Leader.blinkManager.blinking = false;
+        for (net.minecraft.network.Packet<?> p : Leader.blinkManager.blinkedPackets) {
+            if (p instanceof C02PacketUseEntity) {
+                mc.thePlayer.motionX *= factor;
+                mc.thePlayer.motionZ *= factor;
+            }
+            PacketUtil.sendPacketNoEvent(p);
+        }
+        Leader.blinkManager.blinkedPackets.clear();
+        if (!wasBlinking) {
+            Leader.blinkManager.blinkModule = BlinkModules.NONE;
+        }
+        blinkingVelocity = false;
+        blinkActive = false;
+        blinkScheduled = false;
+        knockback = false;
+        knockbackTimer = -1;
+    }
+
     @EventTarget
     public void onPacket(PacketEvent event) {
         if (isEnabled() && event.getType() == EventType.RECEIVE && !event.isCancelled()) {
@@ -387,6 +464,7 @@ public class Velocity extends Module {
                 S12PacketEntityVelocity velocityPacket = (S12PacketEntityVelocity) event.getPacket();
                 if (velocityPacket.getEntityID() == mc.thePlayer.getEntityId()) {
                     knockback = true;
+                    knockbackTimer = 0;
                 }
             }
         }
@@ -426,6 +504,15 @@ public class Velocity extends Module {
         hasReceivedVelocity = false;
         knockback = false;
         cancellingKillAuraAttack = false;
+        if (blinkingVelocity) {
+            blinkingVelocity = false;
+            blinkActive = false;
+            blinkScheduled = false;
+            knockbackTimer = -1;
+            Leader.blinkManager.blinking = false;
+            Leader.blinkManager.blinkedPackets.clear();
+            Leader.blinkManager.blinkModule = BlinkModules.NONE;
+        }
     }
     @Override
     public String[] getSuffix() {

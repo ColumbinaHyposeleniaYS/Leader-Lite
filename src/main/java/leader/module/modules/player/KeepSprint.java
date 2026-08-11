@@ -9,6 +9,7 @@ import leader.events.TickEvent;
 import leader.Leader;
 import leader.module.Module;
 import leader.module.modules.combat.KillAura;
+import leader.module.modules.combat.Velocity;
 import leader.property.properties.BooleanProperty;
 import leader.property.properties.IntProperty;
 import leader.property.properties.ModeProperty;
@@ -91,6 +92,7 @@ public class KeepSprint extends Module {
     }
 
     public double getSlowFactor() {
+        if (Velocity.blinkActive) return 1.0;
         switch (mode.getValue()) {
             case 1:
                 return 0.6;

@@ -52,6 +52,11 @@ public class BlinkManager {
             return false;
         }
         if (state) {
+            if (this.blinkModule != BlinkModules.NONE && this.blinkModule != module) {
+                if (module != BlinkModules.VELOCITY) {
+                    return false;
+                }
+            }
             this.blinkModule = module;
             this.blinking = true;
             BlinkSettings settings = getBlinkSettings();

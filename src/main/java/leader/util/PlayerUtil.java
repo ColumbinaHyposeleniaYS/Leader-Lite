@@ -1,6 +1,7 @@
 package leader.util;
 
 import leader.Leader;
+import leader.module.modules.combat.Velocity;
 import leader.module.modules.misc.Disabler;
 import leader.module.modules.player.KeepSprint;
 import net.minecraft.block.Block;
@@ -183,15 +184,17 @@ public class PlayerUtil {
                                     MathHelper.cos(mc.thePlayer.rotationYaw * (float) Math.PI / 180.0F) * (float) knockbackLevel * 0.5F
                             );
                             KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.modules.get(KeepSprint.class);
-                            if (keepSprint.isEnabled()
-                                    && keepSprint.isAttackNoSlow()) {
-                                double factor = keepSprint.getSlowFactor();
-                                mc.thePlayer.motionX *= factor;
-                                mc.thePlayer.motionZ *= factor;
-                            } else {
-                                mc.thePlayer.motionX *= 0.6;
-                                mc.thePlayer.motionZ *= 0.6;
-                                mc.thePlayer.setSprinting(false);
+                            if (!Velocity.blinkActive) {
+                                if (keepSprint.isEnabled()
+                                        && keepSprint.isAttackNoSlow()) {
+                                    double factor = keepSprint.getSlowFactor();
+                                    mc.thePlayer.motionX *= factor;
+                                    mc.thePlayer.motionZ *= factor;
+                                } else {
+                                    mc.thePlayer.motionX *= 0.6;
+                                    mc.thePlayer.motionZ *= 0.6;
+                                    mc.thePlayer.setSprinting(false);
+                                }
                             }
                         }
                         if (target instanceof EntityPlayerMP && target.velocityChanged) {
