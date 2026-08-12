@@ -8,6 +8,7 @@ pluginManagement {
         maven("https://maven.minecraftforge.net/")
         maven("https://repo.spongepowered.org/maven/")
         maven("https://repo.essential.gg/repository/maven-releases/")
+        maven("https://maven.wagyourtail.xyz/releases")
     }
     resolutionStrategy {
         eachPlugin {

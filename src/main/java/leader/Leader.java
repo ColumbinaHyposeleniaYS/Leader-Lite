@@ -135,6 +135,7 @@ public class Leader {
         moduleManager.modules.put(SpeedMine.class, new SpeedMine());
         moduleManager.modules.put(Sprint.class, new Sprint());
         moduleManager.modules.put(SmartAttack.class, new SmartAttack());
+        moduleManager.modules.put(AutoWeapon.class, new AutoWeapon());
         moduleManager.modules.put(TargetHUD.class, new TargetHUD());
         moduleManager.modules.put(TargetESP.class, new TargetESP());
         moduleManager.modules.put(TargetStrafe.class, new TargetStrafe());

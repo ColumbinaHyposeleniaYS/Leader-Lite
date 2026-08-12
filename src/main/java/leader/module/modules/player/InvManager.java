@@ -48,6 +48,7 @@ public class InvManager extends Module {
     public final IntProperty gappleSlot = new IntProperty("Gapple Slot", 3, 0, 9);
     public final BooleanProperty keepOre = new BooleanProperty("Keep Ore", true);
     public final BooleanProperty keepWaterBucket = new BooleanProperty("Keep Water Bucket", true);
+    public final IntProperty waterBucketSlot = new IntProperty("Water Bucket Slot", 6, 0, 9, keepWaterBucket::getValue);
     public final BooleanProperty keepBowAndArrows = new BooleanProperty("Keep Bow And Arrows", true);
     public final IntProperty bowSlot = new IntProperty("Bow Slot", 5, 0, 9, keepBowAndArrows::getValue);
 
@@ -128,7 +129,26 @@ public class InvManager extends Module {
     }
 
     private boolean isWaterBucket(ItemStack stack) {
-        return stack != null && stack.getItem() == net.minecraft.init.Items.water_bucket;
+        // 水桶和空桶都保护：MLG 落地舀水后手里是空桶，不能被当垃圾丢掉
+        return stack != null && (stack.getItem() == net.minecraft.init.Items.water_bucket || stack.getItem() == net.minecraft.init.Items.bucket);
+    }
+
+    private int findWaterBucketSlot(int preferredSlot, boolean hotbarOnly) {
+        if (preferredSlot >= 0 && preferredSlot <= 8) {
+            ItemStack stack = mc.thePlayer.inventory.getStackInSlot(preferredSlot);
+            if (this.isWaterBucket(stack)) {
+                return preferredSlot;
+            }
+        }
+        int start = hotbarOnly ? 0 : 9;
+        int end = hotbarOnly ? 9 : 36;
+        for (int i = start; i < end; i++) {
+            ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
+            if (this.isWaterBucket(stack)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private boolean isBow(ItemStack stack) {
@@ -257,6 +277,15 @@ public class InvManager extends Module {
         int equippedGappleSlot = this.findGappleSlot(preferredGappleHotbarSlot, true);
         int inventoryGappleSlot = this.findGappleSlot(preferredGappleHotbarSlot, false);
 
+        int preferredWaterBucketHotbarSlot = this.waterBucketSlot.getValue() - 1;
+        int equippedWaterBucketSlot = -1;
+        int inventoryWaterBucketSlot = -1;
+        if (keepWaterBucket.getValue()) {
+            int water = this.findWaterBucketSlot(preferredWaterBucketHotbarSlot, true);
+            if (water != -1) equippedWaterBucketSlot = water;
+            else inventoryWaterBucketSlot = this.findWaterBucketSlot(preferredWaterBucketHotbarSlot, false);
+        }
+
         int preferredBowHotbarSlot = this.bowSlot.getValue() - 1;
         int equippedBowSlot = -1;
         int inventoryBowSlot = -1;
@@ -307,6 +336,10 @@ public class InvManager extends Module {
             if (equippedGappleSlot != preferredGappleHotbarSlot && inventoryGappleSlot != preferredGappleHotbarSlot)
                 return false;
         }
+        if (keepWaterBucket.getValue() && preferredWaterBucketHotbarSlot >= 0 && preferredWaterBucketHotbarSlot <= 8 && (equippedWaterBucketSlot != -1 || inventoryWaterBucketSlot != -1)) {
+            if (equippedWaterBucketSlot != preferredWaterBucketHotbarSlot && inventoryWaterBucketSlot != preferredWaterBucketHotbarSlot)
+                return false;
+        }
         if (keepBowAndArrows.getValue() && preferredBowHotbarSlot >= 0 && preferredBowHotbarSlot <= 8 && (equippedBowSlot != -1 || inventoryBowSlot != -1)) {
             if (equippedBowSlot != preferredBowHotbarSlot && inventoryBowSlot != preferredBowHotbarSlot)
                 return false;
@@ -333,6 +366,7 @@ public class InvManager extends Module {
                             && inventoryBlocksSlot != i && equippedThrowsSlot != i
                             && inventoryThrowsSlot != i && equippedGappleSlot != i
                             && inventoryGappleSlot != i
+                            && equippedWaterBucketSlot != i && inventoryWaterBucketSlot != i
                             && equippedBowSlot != i && inventoryBowSlot != i) {
                         ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
                         if (this.isThrowable(stack)) return false;
@@ -349,6 +383,7 @@ public class InvManager extends Module {
                         && inventoryBlocksSlot != i && equippedThrowsSlot != i
                         && inventoryThrowsSlot != i && equippedGappleSlot != i
                         && inventoryGappleSlot != i
+                        && equippedWaterBucketSlot != i && inventoryWaterBucketSlot != i
                         && equippedBowSlot != i && inventoryBowSlot != i) {
                     ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
                     if (stack != null) {
@@ -450,6 +485,14 @@ public class InvManager extends Module {
                         int preferredGappleHotbarSlot = this.gappleSlot.getValue() - 1;
                         int equippedGappleSlot = this.findGappleSlot(preferredGappleHotbarSlot, true);
                         int inventoryGappleSlot = this.findGappleSlot(preferredGappleHotbarSlot, false);
+                        int preferredWaterBucketHotbarSlot = this.waterBucketSlot.getValue() - 1;
+                        int equippedWaterBucketSlot = -1;
+                        int inventoryWaterBucketSlot = -1;
+                        if (keepWaterBucket.getValue()) {
+                            int water = this.findWaterBucketSlot(preferredWaterBucketHotbarSlot, true);
+                            if (water != -1) equippedWaterBucketSlot = water;
+                            else inventoryWaterBucketSlot = this.findWaterBucketSlot(preferredWaterBucketHotbarSlot, false);
+                        }
                         int preferredBowHotbarSlot = this.bowSlot.getValue() - 1;
                         int equippedBowSlot = -1;
                         int inventoryBowSlot = -1;
@@ -558,6 +601,14 @@ public class InvManager extends Module {
                                     return;
                                 }
                             }
+                            if (keepWaterBucket.getValue() && preferredWaterBucketHotbarSlot >= 0 && preferredWaterBucketHotbarSlot <= 8 && !usedHotbarSlots.contains(preferredWaterBucketHotbarSlot) && (equippedWaterBucketSlot != -1 || inventoryWaterBucketSlot != -1)) {
+                                usedHotbarSlots.add(preferredWaterBucketHotbarSlot);
+                                if (equippedWaterBucketSlot != preferredWaterBucketHotbarSlot && inventoryWaterBucketSlot != preferredWaterBucketHotbarSlot) {
+                                    int slot = equippedWaterBucketSlot != -1 ? equippedWaterBucketSlot : inventoryWaterBucketSlot;
+                                    this.clickSlot(mc.thePlayer.inventoryContainer.windowId, this.convertSlotIndex(slot), preferredWaterBucketHotbarSlot, 2);
+                                    return;
+                                }
+                            }
                             if (keepBowAndArrows.getValue() && preferredBowHotbarSlot >= 0 && preferredBowHotbarSlot <= 8 && !usedHotbarSlots.contains(preferredBowHotbarSlot) && (equippedBowSlot != -1 || inventoryBowSlot != -1)) {
                                 usedHotbarSlots.add(preferredBowHotbarSlot);
                                 if (equippedBowSlot != preferredBowHotbarSlot && inventoryBowSlot != preferredBowHotbarSlot) {
@@ -580,6 +631,7 @@ public class InvManager extends Module {
                                                 && inventoryBlocksSlot != i && equippedThrowsSlot != i
                                                 && inventoryThrowsSlot != i && equippedGappleSlot != i
                                                 && inventoryGappleSlot != i
+                                                && equippedWaterBucketSlot != i && inventoryWaterBucketSlot != i
                                                 && equippedBowSlot != i && inventoryBowSlot != i) {
                                             ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
                                             if (this.isThrowable(stack)) {
@@ -598,6 +650,7 @@ public class InvManager extends Module {
                                             && inventoryBlocksSlot != i && equippedThrowsSlot != i
                                             && inventoryThrowsSlot != i && equippedGappleSlot != i
                                             && inventoryGappleSlot != i
+                                            && equippedWaterBucketSlot != i && inventoryWaterBucketSlot != i
                                             && equippedBowSlot != i && inventoryBowSlot != i) {
                                         ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
                                         if (stack != null) {
@@ -743,6 +796,18 @@ public class InvManager extends Module {
                                     }
                                 }
                             }
+                            int prefWaterBucket = waterBucketSlot.getValue() - 1;
+                            if (keepWaterBucket.getValue() && prefWaterBucket >= 0 && prefWaterBucket <= 8 && !usedHotbarSlots.contains(prefWaterBucket)) {
+                                int eqWater = findWaterBucketSlot(prefWaterBucket, true);
+                                int invWater = findWaterBucketSlot(prefWaterBucket, false);
+                                if (eqWater != -1 || invWater != -1) {
+                                    usedHotbarSlots.add(prefWaterBucket);
+                                    if (eqWater != prefWaterBucket && invWater != prefWaterBucket) {
+                                        int slot = eqWater != -1 ? eqWater : invWater;
+                                        clickSlot(mc.thePlayer.inventoryContainer.windowId, convertSlotIndex(slot), prefWaterBucket, 2);
+                                    }
+                                }
+                            }
                             if (keepBowAndArrows.getValue()) {
                                 int prefBow = bowSlot.getValue() - 1;
                                 if (prefBow >= 0 && prefBow <= 8 && !usedHotbarSlots.contains(prefBow)) {
@@ -777,6 +842,8 @@ public class InvManager extends Module {
                             int invThrowsDrop = findThrowableSlot(throwsSlot.getValue() - 1, false);
                             int eqGappleDrop = findGappleSlot(gappleSlot.getValue() - 1, true);
                             int invGappleDrop = findGappleSlot(gappleSlot.getValue() - 1, false);
+                            int eqWaterDrop = findWaterBucketSlot(waterBucketSlot.getValue() - 1, true);
+                            int invWaterDrop = findWaterBucketSlot(waterBucketSlot.getValue() - 1, false);
                             int eqBowDrop = findBowSlot(bowSlot.getValue() - 1, true);
                             int invBowDrop = findBowSlot(bowSlot.getValue() - 1, false);
 
@@ -793,6 +860,7 @@ public class InvManager extends Module {
                                             && invBlocksDrop != i && eqThrowsDrop != i
                                             && invThrowsDrop != i && eqGappleDrop != i
                                             && invGappleDrop != i
+                                            && eqWaterDrop != i && invWaterDrop != i
                                             && eqBowDrop != i && invBowDrop != i) {
                                         ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
                                         if (isThrowable(stack)) {
@@ -810,6 +878,7 @@ public class InvManager extends Module {
                                         && invBlocksDrop != i && eqThrowsDrop != i
                                         && invThrowsDrop != i && eqGappleDrop != i
                                         && invGappleDrop != i
+                                        && eqWaterDrop != i && invWaterDrop != i
                                         && !itemsToDrop.contains(i)) {
                                     ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
                                     if (stack != null) {

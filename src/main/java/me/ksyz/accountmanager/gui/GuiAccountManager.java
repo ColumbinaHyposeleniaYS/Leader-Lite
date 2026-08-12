@@ -5,6 +5,7 @@ import me.ksyz.accountmanager.auth.Account;
 import me.ksyz.accountmanager.auth.MicrosoftAuth;
 import me.ksyz.accountmanager.auth.SessionManager;
 import me.ksyz.accountmanager.utils.Notification;
+import me.ksyz.accountmanager.utils.SystemUtils;
 import me.ksyz.accountmanager.utils.TextFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.*;
@@ -12,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.lwjgl.input.Keyboard;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Collections;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
@@ -69,6 +71,9 @@ public class GuiAccountManager extends GuiScreen {
         ));
         buttonList.add(new GuiButton(
                 5, width / 2 - 50, height - 28, 95, 20, "Add Token"
+        ));
+        buttonList.add(new GuiButton(
+                6, width / 2 + 150, height - 28, 95, 20, "Get NFA"
         ));
 
         guiAccountList = new GuiAccountList(mc);
@@ -296,6 +301,14 @@ public class GuiAccountManager extends GuiScreen {
                 break;
                 case 5:{
                     mc.displayGuiScreen(new GuiAddToken(this));
+                }
+                break;
+                case 6:{
+                    try {
+                        SystemUtils.openWebLink(new URI("https://shop.xuebimc.com/"));
+                    } catch (Exception exception) {
+                        // ignore
+                    }
                 }
                 break;
                 default: {

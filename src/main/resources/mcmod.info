@@ -6,5 +6,17 @@
     "authorList": [
       "woshijiejue"
     ]
+  },
+  {
+    "modid": "viaforge",
+    "name": "ViaForge",
+    "description": "Client-side ViaVersion implementation for MinecraftForge (skidded into Leader Lite)",
+    "version": "4.4.0",
+    "mcversion": "[1.8.8,)",
+    "url": "https://github.com/ViaVersion/ViaForge",
+    "authorList": [
+      "Florian Reuth (EnZaXD)"
+    ],
+    "credits": "https://github.com/florianreuth/"
   }
 ]
