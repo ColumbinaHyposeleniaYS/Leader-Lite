@@ -57,17 +57,22 @@ public class ModuleComponent implements Component {
         int width = category.getWidth();
         int titleH = TITLE_HEIGHT;
         if (mod.isEnabled()) {
-            RenderUtil.drawRoundedRectWithGl(x + 8, y + 5, x + 12, y + titleH - 5, 2, new Color(92, 169, 255).getRGB());
+            // Soft row highlight plus a glowing accent bar.
+            RenderUtil.drawRoundedRectWithGl(x + 5, y + 2.5F, x + width - 5, y + titleH - 2.5F, 4, new Color(255, 255, 255, 9).getRGB());
+            RenderUtil.drawRoundedRectWithGl(x + 7, y + 4.5F, x + 12.5F, y + titleH - 4.5F, 2.75F, new Color(110, 170, 255, 60).getRGB());
+            RenderUtil.drawRoundedRectWithGl(x + 8, y + 5.5F, x + 11.5F, y + titleH - 5.5F, 1.75F, new Color(120, 175, 255).getRGB());
         }
         if (panelExpand) {
             Gui.drawRect(x + 8, y + titleH - 1, x + width - 8, y + titleH, new Color(255, 255, 255, 18).getRGB());
         }
-        int textColor = mod.isEnabled() ? new Color(245, 247, 250).getRGB() : new Color(190, 193, 201).getRGB();
+        int textColor = mod.isEnabled() ? new Color(245, 248, 252).getRGB() : new Color(180, 184, 193).getRGB();
         String displayName = trimText(mod.getName(), width - 34);
-        GuiText.draw(displayName, x + 17, y + 6, textColor);
+        // Center the label vertically regardless of the active font height.
+        float textY = y + (TITLE_HEIGHT - GuiText.height()) / 2.0F;
+        GuiText.draw(displayName, x + 17, textY, textColor);
         if (!settings.isEmpty()) {
             String arrow = panelExpand ? "v" : ">";
-            GuiText.draw(arrow, x + width - 16, y + 6, new Color(155, 160, 170).getRGB());
+            GuiText.draw(arrow, x + width - 16, textY, new Color(150, 155, 166).getRGB());
         }
         if (panelExpand) {
             for (Component c : settings) {

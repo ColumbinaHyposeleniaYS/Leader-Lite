@@ -23,6 +23,9 @@ import net.minecraft.client.gui.GuiChat;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.WorldRenderer;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityArmorStand;
@@ -55,7 +58,7 @@ public class TargetHUD extends Module {
     private float lastObservedHealth = Float.NaN;
     private final List<HitParticle> hitParticles = new ArrayList<>();
     private boolean renderingFollow = false;
-    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"DEFAULT", "TRIANGLE", "BACKGROUND", "MODERN"});
+    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"DEFAULT", "TRIANGLE", "BACKGROUND", "MODERN", "INK"});
     public final ModeProperty color = new ModeProperty("color", 0, new String[]{"DEFAULT", "HUD"});
     public final ModeProperty position = new ModeProperty("position", 0, new String[]{"SCREEN", "FOLLOW"});
     public final ModeProperty posX = new ModeProperty("position-x", 1, new String[]{"LEFT", "MIDDLE", "RIGHT"}, () -> this.position.getValue() == 0);
@@ -74,7 +77,7 @@ public class TargetHUD extends Module {
     public final BooleanProperty shadow = new BooleanProperty("shadow", false);
     public final BooleanProperty kaOnly = new BooleanProperty("ka-only", true);
     public final BooleanProperty chatPreview = new BooleanProperty("chat-preview", false);
-    public final BooleanProperty blur = new BooleanProperty("blur", false, () -> this.mode.getValue() == 2 || this.mode.getValue() == 3);
+    public final BooleanProperty blur = new BooleanProperty("blur", false, () -> this.mode.getValue() >= 2);
 
     private EntityLivingBase resolveTarget() {
         KillAura killAura = (KillAura) Leader.moduleManager.modules.get(KillAura.class);
@@ -262,6 +265,9 @@ public class TargetHUD extends Module {
         if (this.mode.getValue() == 3) {
             cardWidth = Math.max(220.0F, targetNameWidth + 118.0F);
             cardHeight = 48.0F;
+        } else if (this.mode.getValue() == 4) {
+            cardWidth = this.getInkCardWidth(targetNameWidth, statusTextWidth, healthTextWidth, healthDiffWidth);
+            cardHeight = this.getInkCardHeight();
         } else if (this.mode.getValue() == 2) {
             cardWidth = 150.0F;
             cardHeight = this.getCardHeight();
@@ -307,6 +313,8 @@ public class TargetHUD extends Module {
         this.renderingFollow = true;
         if (this.mode.getValue() == 3) {
             renderModern(scaledResolution, targetNameText, healthText, statusText, healthDiffText, targetNameWidth, healthTextWidth, statusTextWidth, healthDiffWidth, healthRatio, targetColor, healthBarColor, healthDeltaColor, heal, (mc.thePlayer.getHealth() + mc.thePlayer.getAbsorptionAmount()) / 2.0F, abs);
+        } else if (this.mode.getValue() == 4) {
+            renderInk(scaledResolution, targetNameText, healthText, statusText, healthDiffText, targetNameWidth, healthTextWidth, statusTextWidth, healthDiffWidth, healthRatio, targetColor, healthBarColor, healthDeltaColor, heal, (mc.thePlayer.getHealth() + mc.thePlayer.getAbsorptionAmount()) / 2.0F, abs);
         } else if (this.mode.getValue() == 2) {
             renderBackground(scaledResolution, targetNameText, healthText, targetNameWidth, healthTextWidth, healthRatio, targetColor, healthBarColor, heal, (mc.thePlayer.getHealth() + mc.thePlayer.getAbsorptionAmount()) / 2.0F, abs);
         } else if (this.mode.getValue() == 1) {
@@ -412,6 +420,11 @@ public class TargetHUD extends Module {
                 float healthDiffWidth = this.getTextWidth(healthDiffText);
                 if (this.mode.getValue() == 3) {
                     renderModern(scaledResolution, targetNameText, healthText, statusText, healthDiffText,
+                            targetNameWidth, healthTextWidth, statusTextWidth, healthDiffWidth,
+                            healthRatio, targetColor, healthBarColor, healthDeltaColor,
+                            heal, health, abs);
+                } else if (this.mode.getValue() == 4) {
+                    renderInk(scaledResolution, targetNameText, healthText, statusText, healthDiffText,
                             targetNameWidth, healthTextWidth, statusTextWidth, healthDiffWidth,
                             healthRatio, targetColor, healthBarColor, healthDeltaColor,
                             heal, health, abs);
@@ -646,6 +659,22 @@ public class TargetHUD extends Module {
             }
         }
 
+        if (this.blur.getValue() && !this.renderingFollow) {
+            final float bx = posX;
+            final float by = posY;
+            final float bw = cardWidth;
+            final float bh = cardHeight;
+            final float sc = this.scale.getValue();
+            final float r = radius;
+            ShaderElement.addBlurTask(() -> {
+                GlStateManager.pushMatrix();
+                GlStateManager.scale(sc, sc, 1.0F);
+                GlStateManager.translate(bx, by, -450.0F);
+                RenderUtil.drawRoundedRectWithGl(0.0F, 0.0F, bw, bh, r, -1);
+                GlStateManager.popMatrix();
+            });
+        }
+
         GlStateManager.pushMatrix();
         if (!this.renderingFollow) {
             GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
@@ -657,13 +686,28 @@ public class TargetHUD extends Module {
         float shake = hitProgress > 0.0F ? (float) Math.sin(System.currentTimeMillis() * 0.08D) * 3.0F * hitProgress : 0.0F;
         float filledWidth = Math.max(2.0F, barWidth * healthRatio);
 
-        int bgColor = new Color(11, 13, 19, Math.max(172, this.getBackgroundAlpha())).getRGB();
-        int trackColor = new Color(255, 255, 255, 34).getRGB();
-        int fillSoftColor = new Color(healthBarColor.getRed(), healthBarColor.getGreen(), healthBarColor.getBlue(), 210).getRGB();
+        // Frosted-glass card: soft white rim, translucent dark pane, a faint
+        // health-color tint and a gentle top shine.
+        int glassAlpha = Math.max(150, Math.min(205, this.getBackgroundAlpha()));
+        int rimColor = this.outline.getValue()
+                ? new Color(targetColor.getRed(), targetColor.getGreen(), targetColor.getBlue(), 110).getRGB()
+                : new Color(255, 255, 255, 38).getRGB();
+        int glassColor = new Color(14, 16, 22, glassAlpha).getRGB();
+        int tintColor = new Color(healthBarColor.getRed(), healthBarColor.getGreen(), healthBarColor.getBlue(), 12).getRGB();
+        int shineColor = new Color(255, 255, 255, 20).getRGB();
 
-        RenderUtil.drawRoundedRectWithGl(0.0F, 0.0F, cardWidth, cardHeight, radius, bgColor);
+        RenderUtil.drawRoundedRectWithGl(0.0F, 0.0F, cardWidth, cardHeight, radius, rimColor);
+        RenderUtil.drawRoundedRectWithGl(1.0F, 1.0F, cardWidth - 1.0F, cardHeight - 1.0F, radius - 1.0F, glassColor);
+        RenderUtil.drawRoundedRectWithGl(1.0F, 1.0F, cardWidth - 1.0F, cardHeight - 1.0F, radius - 1.0F, tintColor);
+        RenderUtil.drawRoundedRectWithGl(2.0F, 2.0F, cardWidth - 2.0F, cardHeight * 0.45F, radius - 2.0F, shineColor);
+
+        // Health bar: dim track, glowing fill.
+        int trackColor = new Color(255, 255, 255, 26).getRGB();
+        int glowColor = new Color(healthBarColor.getRed(), healthBarColor.getGreen(), healthBarColor.getBlue(), 55).getRGB();
+        int fillColor = new Color(healthBarColor.getRed(), healthBarColor.getGreen(), healthBarColor.getBlue(), 235).getRGB();
         RenderUtil.drawRoundedRectWithGl(barX, barY, barX + barWidth, barY + barHeight, barHeight / 2.0F, trackColor);
-        RenderUtil.drawRoundedRectWithGl(barX, barY, barX + filledWidth, barY + barHeight, barHeight / 2.0F, fillSoftColor);
+        RenderUtil.drawRoundedRectWithGl(barX, barY - 1.0F, barX + filledWidth, barY + barHeight + 1.0F, (barHeight + 2.0F) / 2.0F, glowColor);
+        RenderUtil.drawRoundedRectWithGl(barX, barY, barX + filledWidth, barY + barHeight, barHeight / 2.0F, fillColor);
 
         GlStateManager.disableDepth();
         GlStateManager.enableBlend();
@@ -673,10 +717,20 @@ public class TargetHUD extends Module {
         this.drawText(modernHealthText, barX + barWidth - modernHealthWidth, 20.0F, new Color(235, 238, 244, 245).getRGB());
 
         if (this.head.getValue() && this.headTexture != null) {
+            RenderUtil.drawRoundedRectWithGl(headX - 1.5F, headY - 1.5F, headX + headSize + 1.5F, headY + headSize + 1.5F, 6.5F,
+                    new Color(255, 255, 255, 30).getRGB());
+            RenderUtil.drawRoundedRectWithGl(headX - 0.5F, headY - 0.5F, headX + headSize + 0.5F, headY + headSize + 0.5F, 6.0F,
+                    new Color(20, 22, 30, 160).getRGB());
+            // drawRoundedRectWithGl re-enables depth and disables blend; restore
+            // the state the head texture was originally rendered with.
+            GlStateManager.disableDepth();
+            GlStateManager.enableBlend();
+            GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
             mc.getTextureManager().bindTexture(this.headTexture);
-            Gui.drawScaledCustomSizeModalRect((int) (headX + shake), (int) (headY - shake * 0.4F), 8.0F, 8.0F, 8, 8, (int) headSize, (int) headSize, 64.0F, 64.0F);
-            Gui.drawScaledCustomSizeModalRect((int) (headX + shake), (int) (headY - shake * 0.4F), 40.0F, 8.0F, 8, 8, (int) headSize, (int) headSize, 64.0F, 64.0F);
+            // Face + hat overlay, both clipped to the rounded plate shape.
+            drawRoundedHead(headX + shake, headY - shake * 0.4F, headSize, 5.5F, 8.0F, 8.0F);
+            drawRoundedHead(headX + shake, headY - shake * 0.4F, headSize, 5.5F, 40.0F, 8.0F);
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         }
 
@@ -685,6 +739,238 @@ public class TargetHUD extends Module {
 
         GlStateManager.disableBlend();
         GlStateManager.enableDepth();
+        GlStateManager.popMatrix();
+    }
+
+    /**
+     * Draws an 8x8 region of a 64x64 skin texture clipped to a rounded rect by
+     * tessellating the rounded outline as a triangle fan with mapped UVs.
+     */
+    private void drawRoundedHead(float x, float y, float size, float radius, float texU, float texV) {
+        float x2 = x + size;
+        float y2 = y + size;
+        float cx = x + size / 2.0F;
+        float cy = y + size / 2.0F;
+        float[][] corners = {
+                {x2 - radius, y + radius, 270.0F},
+                {x2 - radius, y2 - radius, 0.0F},
+                {x + radius, y2 - radius, 90.0F},
+                {x + radius, y + radius, 180.0F}
+        };
+        Tessellator tessellator = Tessellator.getInstance();
+        WorldRenderer wr = tessellator.getWorldRenderer();
+        // The fan winding ends up clockwise in window space (back face), and the
+        // plate rendering above re-enabled culling — disable it while drawing.
+        GlStateManager.disableCull();
+        wr.begin(GL11.GL_TRIANGLE_FAN, DefaultVertexFormats.POSITION_TEX);
+        wr.pos(cx, cy, 0.0D).tex((texU + 4.0F) / 64.0D, (texV + 4.0F) / 64.0D).endVertex();
+        int steps = 4;
+        float firstX = 0.0F;
+        float firstY = 0.0F;
+        double firstU = 0.0D;
+        double firstV = 0.0D;
+        boolean first = true;
+        for (float[] corner : corners) {
+            for (int i = 0; i <= steps; i++) {
+                double rad = Math.toRadians(corner[2] + i * 90.0F / steps);
+                float px = corner[0] + (float) Math.cos(rad) * radius;
+                float py = corner[1] + (float) Math.sin(rad) * radius;
+                double tu = (texU + (px - x) / size * 8.0F) / 64.0D;
+                double tv = (texV + (py - y) / size * 8.0F) / 64.0D;
+                wr.pos(px, py, 0.0D).tex(tu, tv).endVertex();
+                if (first) {
+                    first = false;
+                    firstX = px;
+                    firstY = py;
+                    firstU = tu;
+                    firstV = tv;
+                }
+            }
+        }
+        wr.pos(firstX, firstY, 0.0D).tex(firstU, firstV).endVertex();
+        tessellator.draw();
+        GlStateManager.enableCull();
+    }
+
+    private float getInkCardWidth(float targetNameWidth, float statusTextWidth,
+                                  float healthTextWidth, float healthDiffWidth) {
+        float line2 = healthTextWidth + (this.indicator.getValue() ? 6.0F + healthDiffWidth : 0.0F);
+        float contentW = Math.max(targetNameWidth, line2);
+        float headW = this.head.getValue() && this.headTexture != null ? 30.0F : 0.0F;
+        float sealW = this.indicator.getValue() ? 21.0F : 0.0F;
+        return Math.max(116.0F, 14.0F + headW + contentW + sealW + 12.0F);
+    }
+
+    private float getInkCardHeight() {
+        return Math.max(36.0F, this.getTextHeight() * 2.0F + 18.0F);
+    }
+
+    /** Tapered calligraphy brush stroke: thick at the root, thin at the tip. */
+    private void drawBrushStroke(float x, float y, float length, int color) {
+        float a = ((color >> 24) & 255) / 255.0F;
+        float r = ((color >> 16) & 255) / 255.0F;
+        float g = ((color >> 8) & 255) / 255.0F;
+        float b = (color & 255) / 255.0F;
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GlStateManager.disableTexture2D();
+        GlStateManager.disableCull();
+        GlStateManager.disableDepth();
+        Tessellator tessellator = Tessellator.getInstance();
+        WorldRenderer wr = tessellator.getWorldRenderer();
+        wr.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
+        float root = 1.8F;
+        float tip = 0.5F;
+        wr.pos(x, y - root, 0.0D).color(r, g, b, a).endVertex();
+        wr.pos(x + length, y - tip, 0.0D).color(r, g, b, a).endVertex();
+        wr.pos(x + length, y + tip, 0.0D).color(r, g, b, a).endVertex();
+        wr.pos(x, y + root, 0.0D).color(r, g, b, a).endVertex();
+        tessellator.draw();
+        GlStateManager.enableDepth();
+        GlStateManager.enableCull();
+        GlStateManager.enableTexture2D();
+        GlStateManager.disableBlend();
+    }
+
+    /**
+     * INK mode (古风简洁): flat ink-dark card with a double hairline mounting
+     * frame, a cinnabar binding thread, a vermilion W/L/D seal and a tapered
+     * calligraphy brush stroke as the health bar.
+     */
+    private void renderInk(ScaledResolution scaledResolution,
+                           String targetNameText, String healthText, String statusText, String healthDiffText,
+                           float targetNameWidth, float healthTextWidth, float statusTextWidth, float healthDiffWidth,
+                           float healthRatio, Color targetColor, Color healthBarColor, Color healthDeltaColor,
+                           float heal, float playerHealth, float abs) {
+        final float cardWidth = this.getInkCardWidth(targetNameWidth, statusTextWidth, healthTextWidth, healthDiffWidth);
+        final float cardHeight = this.getInkCardHeight();
+        final float textHeight = this.getTextHeight();
+        final boolean hasHead = this.head.getValue() && this.headTexture != null;
+        final float headSize = 22.0F;
+        final float textX = hasHead ? 41.0F : 13.0F;
+        final float textTop = 7.0F;
+        final float secondY = textTop + textHeight + 3.0F;
+        final float brushY = cardHeight - 6.5F;
+        final float barX2 = cardWidth - 12.0F;
+
+        float posX = this.renderingFollow ? -cardWidth / 2.0F : this.offX.getValue().floatValue() / this.scale.getValue();
+        if (!this.renderingFollow) {
+            switch (this.posX.getValue()) {
+                case 1:
+                    posX += (float) scaledResolution.getScaledWidth() / this.scale.getValue() / 2.0F - cardWidth / 2.0F;
+                    break;
+                case 2:
+                    posX *= -1.0F;
+                    posX += (float) scaledResolution.getScaledWidth() / this.scale.getValue() - cardWidth;
+                    break;
+            }
+        }
+        float posY = this.renderingFollow ? -cardHeight / 2.0F : this.offY.getValue().floatValue() / this.scale.getValue();
+        if (!this.renderingFollow) {
+            switch (this.posY.getValue()) {
+                case 1:
+                    posY += (float) scaledResolution.getScaledHeight() / this.scale.getValue() / 2.0F - cardHeight / 2.0F;
+                    break;
+                case 2:
+                    posY *= -1.0F;
+                    posY += (float) scaledResolution.getScaledHeight() / this.scale.getValue() - cardHeight;
+                    break;
+            }
+        }
+
+        if (this.blur.getValue() && !this.renderingFollow) {
+            final float bx = posX;
+            final float by = posY;
+            final float bw = cardWidth;
+            final float bh = cardHeight;
+            final float sc = this.scale.getValue();
+            ShaderElement.addBlurTask(() -> {
+                GlStateManager.pushMatrix();
+                GlStateManager.scale(sc, sc, 1.0F);
+                GlStateManager.translate(bx, by, -450.0F);
+                RenderUtil.enableRenderState();
+                RenderUtil.drawRect(0.0F, 0.0F, bw, bh, -1);
+                RenderUtil.disableRenderState();
+                GlStateManager.popMatrix();
+            });
+        }
+
+        GlStateManager.pushMatrix();
+        if (!this.renderingFollow) {
+            GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
+        }
+        GlStateManager.translate(posX, posY, this.renderingFollow ? 0.0F : -450.0F);
+
+        // Paper: flat warm ink-dark, no rounding, no glow.
+        int paperAlpha = Math.max(140, Math.min(195, this.getBackgroundAlpha()));
+        int paper = new Color(26, 23, 20, paperAlpha).getRGB();
+        int frameOuter = new Color(198, 186, 168, 96).getRGB();
+        int frameInner = new Color(198, 186, 168, 42).getRGB();
+        int cinnabar = new Color(172, 54, 44, 230).getRGB();
+
+        RenderUtil.enableRenderState();
+        RenderUtil.drawRect(0.0F, 0.0F, cardWidth, cardHeight, paper);
+        // Double hairline mounting frame (装裱).
+        RenderUtil.drawRect(0.0F, 0.0F, cardWidth, 1.0F, frameOuter);
+        RenderUtil.drawRect(0.0F, cardHeight - 1.0F, cardWidth, cardHeight, frameOuter);
+        RenderUtil.drawRect(0.0F, 0.0F, 1.0F, cardHeight, frameOuter);
+        RenderUtil.drawRect(cardWidth - 1.0F, 0.0F, cardWidth, cardHeight, frameOuter);
+        RenderUtil.drawRect(2.5F, 2.5F, cardWidth - 2.5F, 3.5F, frameInner);
+        RenderUtil.drawRect(2.5F, cardHeight - 3.5F, cardWidth - 2.5F, cardHeight - 2.5F, frameInner);
+        RenderUtil.drawRect(2.5F, 2.5F, 3.5F, cardHeight - 2.5F, frameInner);
+        RenderUtil.drawRect(cardWidth - 3.5F, 2.5F, cardWidth - 2.5F, cardHeight - 2.5F, frameInner);
+        // Cinnabar binding thread (书签绳).
+        RenderUtil.drawRect(5.5F, 6.0F, 7.0F, cardHeight - 6.0F, cinnabar);
+
+        // Head: square portrait with a thin ink frame (画像).
+        if (hasHead) {
+            float headX = 11.0F;
+            float headY = (cardHeight - headSize) / 2.0F;
+            RenderUtil.drawRect(headX - 1.5F, headY - 1.5F, headX + headSize + 1.5F, headY + headSize + 1.5F, frameOuter);
+            RenderUtil.drawRect(headX - 0.5F, headY - 0.5F, headX + headSize + 0.5F, headY + headSize + 0.5F, new Color(26, 23, 20, 220).getRGB());
+        }
+
+        // Vermilion seal (印章) for the W/L/D indicator.
+        float sealX = cardWidth - 23.0F;
+        float sealY = (cardHeight - 13.0F) / 2.0F;
+        if (this.indicator.getValue()) {
+            RenderUtil.drawRect(sealX, sealY, sealX + 13.0F, sealY + 13.0F, new Color(140, 38, 30, 240).getRGB());
+            RenderUtil.drawRect(sealX + 1.0F, sealY + 1.0F, sealX + 12.0F, sealY + 12.0F, cinnabar);
+        }
+        RenderUtil.disableRenderState();
+
+        // Calligraphy brush stroke health bar: faint track + cinnabar stroke.
+        drawBrushStroke(textX, brushY, barX2 - textX, new Color(198, 186, 168, 42).getRGB());
+        float strokeLen = Math.max(3.0F, (barX2 - textX) * healthRatio);
+        drawBrushStroke(textX, brushY, strokeLen, cinnabar);
+        RenderUtil.enableRenderState();
+        RenderUtil.drawRect(textX + strokeLen - 1.0F, brushY - 1.0F, textX + strokeLen + 1.0F, brushY + 1.0F, new Color(172, 54, 44, 170).getRGB());
+        RenderUtil.disableRenderState();
+
+        GlStateManager.disableDepth();
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+        int inkWhite = new Color(232, 224, 210).getRGB();
+        this.drawText(targetNameText, textX, textTop, inkWhite);
+        this.drawText(healthText, textX, secondY, -1);
+        if (this.indicator.getValue()) {
+            this.drawText(healthDiffText, textX + healthTextWidth + 6.0F, secondY, ColorUtil.darker(healthDeltaColor, 0.85F).getRGB());
+            this.drawText(statusText, sealX + (13.0F - statusTextWidth) / 2.0F, sealY + (13.0F - textHeight) / 2.0F, inkWhite);
+        }
+
+        if (hasHead) {
+            float headX = 11.0F;
+            float headY = (cardHeight - headSize) / 2.0F;
+            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+            mc.getTextureManager().bindTexture(this.headTexture);
+            Gui.drawScaledCustomSizeModalRect((int) headX, (int) headY, 8.0F, 8.0F, 8, 8, (int) headSize, (int) headSize, 64.0F, 64.0F);
+            Gui.drawScaledCustomSizeModalRect((int) headX, (int) headY, 40.0F, 8.0F, 8, 8, (int) headSize, (int) headSize, 64.0F, 64.0F);
+            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        }
+
+        GlStateManager.enableDepth();
+        GlStateManager.disableBlend();
         GlStateManager.popMatrix();
     }
 

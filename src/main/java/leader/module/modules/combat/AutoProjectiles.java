@@ -62,8 +62,8 @@ public class AutoProjectiles extends Module {
     private boolean isValidTarget(EntityLivingBase entity) {
         if (entity == mc.thePlayer || entity.deathTime > 0) return false;
         if (!(entity instanceof EntityOtherPlayerMP)) return false;
-        if (mc.thePlayer.getDistanceToEntity(entity) > this.range.getValue()) return false;
-        if (mc.thePlayer.getDistanceToEntity(entity) < this.minRange.getValue()) return false;
+        if (RotationUtil.distanceToEntity(entity) > this.range.getValue()) return false;
+        if (RotationUtil.distanceToEntity(entity) < this.minRange.getValue()) return false;
         if (getYawDifference(entity) > this.fov.getValue() / 2.0F) return false;
         EntityPlayer player = (EntityPlayer) entity;
         if (!isEntityHeightVisible(entity)) return false;
@@ -231,6 +231,12 @@ public class AutoProjectiles extends Module {
         }
         KillAura aura = (KillAura) Leader.moduleManager.modules.get(KillAura.class);
         if (aura.isEnabled() && aura.isPlayerBlocking()){
+            this.target = null;
+            this.throwState = 0;
+            this.switchBack();
+            return;
+        }
+        if (RotationUtil.distanceToEntity(target) <= minRange.getValue()){
             this.target = null;
             this.throwState = 0;
             this.switchBack();

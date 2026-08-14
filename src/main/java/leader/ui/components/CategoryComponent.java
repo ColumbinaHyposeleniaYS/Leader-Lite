@@ -66,11 +66,14 @@ public class CategoryComponent {
         int displayH = displayHeight;
         int totalH = titleHeight + displayH + (displayH > 0 ? 4 : 0);
 
-        RenderUtil.drawRoundedRectWithGl(x, y, x + width, y + totalH, 5, new Color(31, 34, 41, 240).getRGB());
-        Gui.drawRect(x + 6, y + titleHeight - 1, x + width - 6, y + titleHeight, new Color(255, 255, 255, 20).getRGB());
+        // Frosted-glass panel: soft white rim, translucent dark pane, title shine.
+        RenderUtil.drawRoundedRectWithGl(x, y, x + width, y + totalH, 6, new Color(255, 255, 255, 30).getRGB());
+        RenderUtil.drawRoundedRectWithGl(x + 1, y + 1, x + width - 1, y + totalH - 1, 5, new Color(15, 17, 23, 208).getRGB());
+        RenderUtil.drawRoundedRectWithGl(x + 2, y + 2, x + width - 2, y + titleHeight, 4, new Color(255, 255, 255, 14).getRGB());
+        Gui.drawRect(x + 8, y + titleHeight - 1, x + width - 8, y + titleHeight, new Color(255, 255, 255, 16).getRGB());
 
-        Minecraft.getMinecraft().fontRendererObj.drawString(trimText(categoryName, width - 32), x + 9, y + 6, new Color(235, 238, 244).getRGB(), false);
-        Minecraft.getMinecraft().fontRendererObj.drawString(categoryOpened ? "−" : "+", x + width - 14, y + 6, new Color(130, 175, 240).getRGB(), false);
+        Minecraft.getMinecraft().fontRendererObj.drawString(trimText(categoryName, width - 32), x + 9, y + 6, new Color(232, 235, 242).getRGB(), false);
+        Minecraft.getMinecraft().fontRendererObj.drawString(categoryOpened ? "−" : "+", x + width - 14, y + 6, new Color(125, 172, 238).getRGB(), false);
 
         if (displayH > 0 && !modulesInCategory.isEmpty()) {
             int renderHeight = 0;

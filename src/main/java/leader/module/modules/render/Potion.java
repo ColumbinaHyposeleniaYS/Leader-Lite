@@ -345,18 +345,32 @@ public class Potion extends Module {
                 ShaderElement.addBlurTask(() -> RenderUtil.drawRoundedRectWithGl(bx, by, bx + cardWidth, by + cardHeight, radius, -1));
             }
 
-            int bgColor = new Color(12, 14, 20, 184).getRGB();
-            int iconBg = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), 48).getRGB();
-            int accent = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), 220).getRGB();
-            int track = new Color(255, 255, 255, 30).getRGB();
-            int nameColor = new Color(245, 247, 252, 245).getRGB();
+            // Frosted-glass card: white rim, translucent dark pane, soft potion
+            // tint and a gentle top shine.
+            int rimColor = new Color(255, 255, 255, 34).getRGB();
+            int glassColor = new Color(13, 15, 21, 178).getRGB();
+            int tintColor = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), 14).getRGB();
+            int shineColor = new Color(255, 255, 255, 18).getRGB();
+            int iconBg = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), 42).getRGB();
+            int iconRim = new Color(255, 255, 255, 26).getRGB();
+            int accentGlow = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), 55).getRGB();
+            int accent = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), 225).getRGB();
+            int track = new Color(255, 255, 255, 26).getRGB();
+            int nameColor = new Color(240, 244, 250, 245).getRGB();
             int subColor = new Color(188, 196, 210, 220).getRGB();
 
-            RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 2.0F, x + cardWidth + 1.0F, y + cardHeight + 2.0F, radius, new Color(0, 0, 0, 35).getRGB());
-            RenderUtil.drawRoundedRectWithGl(x, y, x + cardWidth, y + cardHeight, radius, bgColor);
-            RenderUtil.drawRoundedRectWithGl(x + 6.0F, y + 5.5F, x + 6.0F + iconBox, y + 5.5F + iconBox, 6.0F, iconBg);
+            RenderUtil.drawRoundedRectWithGl(x, y, x + cardWidth, y + cardHeight, radius, rimColor);
+            RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 1.0F, x + cardWidth - 1.0F, y + cardHeight - 1.0F, radius - 1.0F, glassColor);
+            RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 1.0F, x + cardWidth - 1.0F, y + cardHeight - 1.0F, radius - 1.0F, tintColor);
+            RenderUtil.drawRoundedRectWithGl(x + 2.0F, y + 2.0F, x + cardWidth - 2.0F, y + cardHeight * 0.45F, radius - 2.0F, shineColor);
+            // Icon chip: frosted tile with a fine rim.
+            RenderUtil.drawRoundedRectWithGl(x + 6.0F, y + 5.5F, x + 6.0F + iconBox, y + 5.5F + iconBox, 6.0F, iconRim);
+            RenderUtil.drawRoundedRectWithGl(x + 6.5F, y + 6.0F, x + 5.5F + iconBox, y + 5.0F + iconBox, 5.5F, iconBg);
+            // Vertical duration bar: dim track, glowing fill.
+            float fillH = (cardHeight - 12.0F) * ratio;
             RenderUtil.drawRoundedRectWithGl(x + cardWidth - 7.0F, y + 6.0F, x + cardWidth - 4.0F, y + cardHeight - 6.0F, 1.5F, track);
-            RenderUtil.drawRoundedRectWithGl(x + cardWidth - 7.0F, y + cardHeight - 6.0F - (cardHeight - 12.0F) * ratio, x + cardWidth - 4.0F, y + cardHeight - 6.0F, 1.5F, accent);
+            RenderUtil.drawRoundedRectWithGl(x + cardWidth - 8.0F, y + cardHeight - 7.0F - fillH, x + cardWidth - 3.0F, y + cardHeight - 5.0F, 2.5F, accentGlow);
+            RenderUtil.drawRoundedRectWithGl(x + cardWidth - 7.0F, y + cardHeight - 6.0F - fillH, x + cardWidth - 4.0F, y + cardHeight - 6.0F, 1.5F, accent);
 
             if (potion.hasStatusIcon()) {
                 GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);

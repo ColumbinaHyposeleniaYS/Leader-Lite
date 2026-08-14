@@ -105,15 +105,18 @@ public class Watermark extends Module {
         float curW = FontManager.getStringWidth(curText) * textScale;
         float nextW = FontManager.getStringWidth(nextText) * textScale;
         float textH = FontManager.getFontHeight() * textScale;
-        float contentW = curW + (nextW - curW) * anim;
+        float textW = curW + (nextW - curW) * anim;
 
         // ── Layout ──
         float padX = 12.0F;
         float padY = 7.0F;
+        float dot = 4.0F;
+        float dotGap = 7.0F;
+        float contentW = dot + dotGap + textW;
 
         float cardW = padX + contentW + padX;
         float cardH = padY + textH + padY;
-        float radius = 5.0F;
+        float radius = 6.0F;
 
         // ── Clamp to screen ──
         ScaledResolution sr = new ScaledResolution(mc);
@@ -127,29 +130,32 @@ public class Watermark extends Module {
         if (x < 4.0F) x = 4.0F;
         if (y < 4.0F) y = 4.0F;
 
-        int borderCol = new Color(tc.getRed(), tc.getGreen(), tc.getBlue(), 35).getRGB();
-        int bg = new Color(10, 10, 16, 180).getRGB();
-        int shadow = new Color(0, 0, 0, 55).getRGB();
+        // ── Frosted-glass card ──
+        int rimCol = new Color(255, 255, 255, 36).getRGB();
+        int glassCol = new Color(13, 15, 21, 172).getRGB();
+        int tintCol = new Color(tc.getRed(), tc.getGreen(), tc.getBlue(), 14).getRGB();
+        int shineCol = new Color(255, 255, 255, 20).getRGB();
 
         GlStateManager.pushMatrix();
         GlStateManager.scale(uiScale, uiScale, 1.0F);
-        RenderUtil.drawRoundedRectWithGl(
-                x + 1.0F, y + 2.0F,
-                x + cardW + 1.0F, y + cardH + 2.0F,
-                radius, shadow);
-        RenderUtil.drawRoundedRectWithGl(
-                x - 0.5F, y - 0.5F,
-                x + cardW + 0.5F, y + cardH + 0.5F,
-                radius + 0.5F, borderCol);
-        RenderUtil.drawRoundedRectWithGl(
-                x, y,
-                x + cardW, y + cardH,
-                radius, bg);
+        RenderUtil.drawRoundedRectWithGl(x, y, x + cardW, y + cardH, radius, rimCol);
+        RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 1.0F, x + cardW - 1.0F, y + cardH - 1.0F, radius - 1.0F, glassCol);
+        RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 1.0F, x + cardW - 1.0F, y + cardH - 1.0F, radius - 1.0F, tintCol);
+        RenderUtil.drawRoundedRectWithGl(x + 2.0F, y + 2.0F, x + cardW - 2.0F, y + cardH * 0.45F, radius - 2.0F, shineCol);
+
+        // ── Pulsing theme dot ──
+        float pulse = 0.7F + 0.3F * (float) Math.sin(now * 0.004D);
+        float dotY = y + (cardH - dot) / 2.0F;
+        int dotGlow = new Color(tc.getRed(), tc.getGreen(), tc.getBlue(), (int) (70.0F * pulse)).getRGB();
+        int dotCore = new Color(tc.getRed(), tc.getGreen(), tc.getBlue(), (int) (235.0F * pulse)).getRGB();
+        RenderUtil.drawRoundedRectWithGl(x + padX - 1.5F, dotY - 1.5F, x + padX + dot + 1.5F, dotY + dot + 1.5F, 3.0F, dotGlow);
+        RenderUtil.drawRoundedRectWithGl(x + padX, dotY, x + padX + dot, dotY + dot, 2.0F, dotCore);
+
         GlStateManager.disableDepth();
         GlStateManager.enableBlend();
         GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-        float textX = x + (cardW - contentW) / 2.0F;
+        float textX = x + padX + dot + dotGap;
         float baseY = y + (cardH - textH) / 2.0F + 1.0F;
         float curOffY = -5.0F * anim;
         int curAlpha = (int) ((1.0F - anim) * 245.0F);

@@ -116,10 +116,10 @@ public class ClickGui extends GuiScreen {
         Tessellator tessellator = Tessellator.getInstance();
         WorldRenderer world = tessellator.getWorldRenderer();
         world.begin(7, DefaultVertexFormats.POSITION_COLOR);
-        world.pos(0, sr.getScaledHeight(), 0).color(0, 0, 0, 180).endVertex();
-        world.pos(sr.getScaledWidth(), sr.getScaledHeight(), 0).color(0, 0, 0, 180).endVertex();
-        world.pos(sr.getScaledWidth(), 0, 0).color(10, 10, 25, 180).endVertex();
-        world.pos(0, 0, 0).color(10, 10, 25, 180).endVertex();
+        world.pos(0, sr.getScaledHeight(), 0).color(8, 9, 14, 195).endVertex();
+        world.pos(sr.getScaledWidth(), sr.getScaledHeight(), 0).color(8, 9, 14, 195).endVertex();
+        world.pos(sr.getScaledWidth(), 0, 0).color(16, 19, 28, 170).endVertex();
+        world.pos(0, 0, 0).color(16, 19, 28, 170).endVertex();
         tessellator.draw();
         GlStateManager.shadeModel(7424);
         GlStateManager.disableBlend();

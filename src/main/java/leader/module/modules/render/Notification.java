@@ -26,7 +26,7 @@ public class Notification extends Module {
     private static final List<NotificationEntry> entries = new ArrayList<>();
 
     public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"RIGHT", "LEFT"});
-    public final ModeProperty style = new ModeProperty("style", 1, new String[]{"CLASSIC", "MODERN", "NEON"});
+    public final ModeProperty style = new ModeProperty("style", 1, new String[]{"CLASSIC", "MODERN", "8BIT"});
     public final IntProperty duration = new IntProperty("duration", 1500, 500, 5000);
     public final IntProperty maxAlerts = new IntProperty("max-alerts", 5, 1, 10);
     public final FloatProperty scale = new FloatProperty("scale", 1.0F, 0.5F, 1.5F);
@@ -36,6 +36,9 @@ public class Notification extends Module {
     public final BooleanProperty blur = new BooleanProperty("blur", false);
     public final IntProperty blurIterations = new IntProperty("blur-iterations", 2, 1, 8, blur::getValue);
     public final IntProperty blurOffset = new IntProperty("blur-offset", 3, 1, 10, blur::getValue);
+    public final BooleanProperty pixelIcon = new BooleanProperty("pixel-icon", true, () -> this.style.getValue() == 2);
+    public final BooleanProperty pixelBlink = new BooleanProperty("pixel-blink", true, () -> this.style.getValue() == 2);
+    public final BooleanProperty scanlines = new BooleanProperty("scanlines", true, () -> this.style.getValue() == 2);
     private Framebuffer stencilBlur;
 
     public Notification() {
@@ -82,7 +85,7 @@ public class Notification extends Module {
             return;
         }
         if (this.style.getValue() == 2) {
-            renderNeon(sr, now, dur);
+            renderEightBit(sr, now, dur);
             return;
         }
 
@@ -219,7 +222,7 @@ public class Notification extends Module {
             float slide = (1.0F - alpha) * 18.0F;
             float x = (baseX + (isRight ? slide : -slide)) * invScale;
             float y = (baseY - idx * step) * invScale;
-            Color themeColor = entry.enabled ? new Color(72, 220, 130) : new Color(255, 90, 95);
+            Color themeColor = entry.enabled ? new Color(96, 224, 150) : new Color(255, 110, 116);
 
             if (doBlur) {
                 final float bx = x;
@@ -227,19 +230,29 @@ public class Notification extends Module {
                 ShaderElement.addBlurTask(() -> RenderUtil.drawRoundedRectWithGl(bx, by, bx + cardWidth, by + cardHeight, radius, -1));
             }
 
-            int bgColor = new Color(12, 14, 20, (int) (198.0F * alpha)).getRGB();
+            // Frosted-glass card: white rim, translucent dark pane, soft theme
+            // tint and a gentle top shine.
+            int rimColor = new Color(255, 255, 255, (int) (34.0F * alpha)).getRGB();
+            int glassColor = new Color(13, 15, 21, (int) (178.0F * alpha)).getRGB();
+            int tintColor = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), (int) (14.0F * alpha)).getRGB();
+            int shineColor = new Color(255, 255, 255, (int) (18.0F * alpha)).getRGB();
             int accent = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), (int) (235.0F * alpha)).getRGB();
-            int accentSoft = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), (int) (55.0F * alpha)).getRGB();
-            int track = new Color(255, 255, 255, (int) (34.0F * alpha)).getRGB();
+            int accentGlow = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), (int) (60.0F * alpha)).getRGB();
+            int accentSoft = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), (int) (42.0F * alpha)).getRGB();
+            int track = new Color(255, 255, 255, (int) (26.0F * alpha)).getRGB();
 
-            RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 2.0F, x + cardWidth + 1.0F, y + cardHeight + 2.0F, radius, new Color(0, 0, 0, (int) (42.0F * alpha)).getRGB());
-            RenderUtil.drawRoundedRectWithGl(x, y, x + cardWidth, y + cardHeight, radius, bgColor);
-            RenderUtil.drawRoundedRectWithGl(x, y, x + 2.0F, y + cardHeight, 1.0F, accent);
+            RenderUtil.drawRoundedRectWithGl(x, y, x + cardWidth, y + cardHeight, radius, rimColor);
+            RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 1.0F, x + cardWidth - 1.0F, y + cardHeight - 1.0F, radius - 1.0F, glassColor);
+            RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 1.0F, x + cardWidth - 1.0F, y + cardHeight - 1.0F, radius - 1.0F, tintColor);
+            RenderUtil.drawRoundedRectWithGl(x + 2.0F, y + 2.0F, x + cardWidth - 2.0F, y + cardHeight * 0.45F, radius - 2.0F, shineColor);
+            // Left accent bar with a soft glow behind it.
+            RenderUtil.drawRoundedRectWithGl(x + 2.0F, y + 6.5F, x + 5.5F, y + cardHeight - 6.5F, 1.75F, accentGlow);
+            RenderUtil.drawRoundedRectWithGl(x + 3.0F, y + 7.5F, x + 4.5F, y + cardHeight - 7.5F, 0.75F, accent);
             RenderUtil.drawRoundedRectWithGl(x + cardWidth - 23.0F, y + 7.0F, x + cardWidth - 9.0F, y + 21.0F, 4.0F, accentSoft);
 
-            float progressY = y + cardHeight - 4.0F;
-            RenderUtil.drawRect(x + 8.0F, progressY, x + cardWidth - 8.0F, progressY + 2.0F, track);
-            RenderUtil.drawRect(x + 8.0F, progressY, x + 8.0F + (cardWidth - 16.0F) * (1.0F - progress), progressY + 2.0F, accent);
+            float progressY = y + cardHeight - 4.5F;
+            RenderUtil.drawRoundedRectWithGl(x + 8.0F, progressY, x + cardWidth - 8.0F, progressY + 1.5F, 0.75F, track);
+            RenderUtil.drawRoundedRectWithGl(x + 8.0F, progressY, x + 8.0F + (cardWidth - 16.0F) * (1.0F - progress), progressY + 1.5F, 0.75F, accent);
 
             GlStateManager.disableDepth();
             GlStateManager.enableBlend();
@@ -264,12 +277,34 @@ public class Notification extends Module {
         GlStateManager.popMatrix();
     }
 
-    private void renderNeon(ScaledResolution sr, long now, long dur) {
-        float cardWidth = 150.0F;
-        float cardHeight = 32.0F;
-        float gap = 4.0F;
-        float radius = 4.0F;
+    private static final String[] PIXEL_CHECK = {
+            "......X",
+            ".....XX",
+            "....XX.",
+            "X..XX..",
+            "XX.XX..",
+            ".XXX...",
+            "..X...."
+    };
+    private static final String[] PIXEL_CROSS = {
+            "X.....X",
+            ".X...X.",
+            "..X.X..",
+            "...X...",
+            "..X.X..",
+            ".X...X.",
+            "X.....X"
+    };
+
+    private void renderEightBit(ScaledResolution sr, long now, long dur) {
         float textScale = this.fontScale.getValue();
+        float textHeight = FontManager.getFontHeight() * textScale;
+        float cardWidth = 140.0F;
+        boolean showIcon = this.pixelIcon.getValue();
+        boolean blink = this.pixelBlink.getValue();
+        boolean showScanlines = this.scanlines.getValue();
+        float cardHeight = Math.max(26.0F, textHeight + 14.0F);
+        float gap = 4.0F;
         float offX = this.offsetX.getValue() + 6.0F;
         float offY = this.offsetY.getValue() + 8.0F;
         boolean isRight = this.mode.getValue() == 0;
@@ -279,6 +314,7 @@ public class Notification extends Module {
         float baseX = isRight ? sr.getScaledWidth() - cardWidth - offX : offX;
         float baseY = sr.getScaledHeight() - offY - cardHeight;
         float step = cardHeight + gap;
+        final float notch = 3.0F;
 
         GlStateManager.pushMatrix();
         GlStateManager.scale(this.scale.getValue(), this.scale.getValue(), 1.0F);
@@ -289,49 +325,98 @@ public class Notification extends Module {
             float alpha = Math.max(0.0F, Math.min(1.0F, getAlpha(now, entry.startTime, dur)));
             int idx = max - 1 - i;
             float slide = (1.0F - alpha) * 16.0F;
+            // Snap the slide to whole pixels so the retro edges stay crisp.
+            slide = Math.round(slide);
             float x = (baseX + (isRight ? slide : -slide)) * invScale;
             float y = (baseY - idx * step) * invScale;
-            Color themeColor = entry.enabled ? new Color(64, 224, 208) : new Color(255, 90, 95);
-            int neonR = themeColor.getRed();
-            int neonG = themeColor.getGreen();
-            int neonB = themeColor.getBlue();
+            Color themeColor = entry.enabled ? new Color(61, 255, 110) : new Color(255, 61, 92);
+            int themeR = themeColor.getRed();
+            int themeG = themeColor.getGreen();
+            int themeB = themeColor.getBlue();
 
             if (doBlur) {
                 final float bx = x;
                 final float by = y;
-                ShaderElement.addBlurTask(() -> RenderUtil.drawRoundedRectWithGl(bx, by, bx + cardWidth, by + cardHeight, radius, -1));
+                ShaderElement.addBlurTask(() -> {
+                    RenderUtil.enableRenderState();
+                    RenderUtil.drawRect(bx, by, bx + cardWidth, by + cardHeight, -1);
+                    RenderUtil.disableRenderState();
+                });
             }
 
             RenderUtil.enableRenderState();
-            RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 2.0F, x + cardWidth + 1.0F, y + cardHeight + 2.0F, radius, new Color(0, 0, 0, (int) (44.0F * alpha)).getRGB());
-            RenderUtil.drawRoundedRectWithGl(x, y, x + cardWidth, y + cardHeight, radius, new Color(11, 13, 19, (int) (210.0F * alpha)).getRGB());
-            RenderUtil.drawRoundedRectWithGl(x, y + 7.0F, x + 2.0F, y + cardHeight - 7.0F, 1.0F, new Color(neonR, neonG, neonB, (int) (240.0F * alpha)).getRGB());
 
-            float barX1 = x + 8.0F;
-            float barX2 = x + cardWidth - 8.0F;
-            float barY = y + cardHeight - 7.0F;
-            float barH = 3.0F;
-            RenderUtil.drawRect(barX1, barY, barX2, barY + barH, new Color(255, 255, 255, (int) (55.0F * alpha)).getRGB());
-            float fillW = (barX2 - barX1) * (1.0F - progress);
-            float fillLeft = barX2 - fillW;
-            RenderUtil.drawRect(fillLeft, barY, barX2, barY + barH, new Color(neonR, neonG, neonB, (int) (255.0F * alpha)).getRGB());
-            RenderUtil.drawRect(fillLeft - 2.5F, barY - 1.0F, fillLeft + 0.5F, barY + barH + 1.0F, new Color(255, 255, 255, (int) (220.0F * alpha)).getRGB());
+            // Hard drop shadow, offset like an old console sprite.
+            int shadowColor = new Color(0, 0, 0, (int) (110.0F * alpha)).getRGB();
+            RenderUtil.drawRect(x + 3.0F, y + 3.0F, x + cardWidth + 3.0F, y + cardHeight + 3.0F, shadowColor);
+
+            // Body with notched corners: center slab + two side slabs.
+            int bodyColor = new Color(12, 12, 18, (int) (235.0F * alpha)).getRGB();
+            RenderUtil.drawRect(x + notch, y, x + cardWidth - notch, y + cardHeight, bodyColor);
+            RenderUtil.drawRect(x, y + notch, x + notch, y + cardHeight - notch, bodyColor);
+            RenderUtil.drawRect(x + cardWidth - notch, y + notch, x + cardWidth, y + cardHeight - notch, bodyColor);
+
+            // Chunky 2px pixel border following the notched silhouette.
+            int borderColor = new Color(themeR, themeG, themeB, (int) (255.0F * alpha)).getRGB();
+            int darkBorder = new Color(themeR / 3, themeG / 3, themeB / 3, (int) (255.0F * alpha)).getRGB();
+            RenderUtil.drawRect(x + notch, y, x + cardWidth - notch, y + 2.0F, borderColor);
+            RenderUtil.drawRect(x + notch, y + cardHeight - 2.0F, x + cardWidth - notch, y + cardHeight, darkBorder);
+            RenderUtil.drawRect(x, y + notch, x + 2.0F, y + cardHeight - notch, borderColor);
+            RenderUtil.drawRect(x + cardWidth - 2.0F, y + notch, x + cardWidth, y + cardHeight - notch, darkBorder);
+            // Corner step pixels.
+            RenderUtil.drawRect(x + 1.0F, y + 1.0F, x + notch, y + 2.0F, borderColor);
+            RenderUtil.drawRect(x + 1.0F, y + 2.0F, x + 2.0F, y + notch, borderColor);
+            RenderUtil.drawRect(x + cardWidth - notch, y + 1.0F, x + cardWidth - 1.0F, y + 2.0F, borderColor);
+            RenderUtil.drawRect(x + cardWidth - 2.0F, y + 2.0F, x + cardWidth - 1.0F, y + notch, borderColor);
+            RenderUtil.drawRect(x + 1.0F, y + cardHeight - 2.0F, x + notch, y + cardHeight - 1.0F, darkBorder);
+            RenderUtil.drawRect(x + 1.0F, y + cardHeight - notch, x + 2.0F, y + cardHeight - 2.0F, darkBorder);
+            RenderUtil.drawRect(x + cardWidth - notch, y + cardHeight - 2.0F, x + cardWidth - 1.0F, y + cardHeight - 1.0F, darkBorder);
+            RenderUtil.drawRect(x + cardWidth - 2.0F, y + cardHeight - notch, x + cardWidth - 1.0F, y + cardHeight - 2.0F, darkBorder);
+
+            // CRT scanlines.
+            if (showScanlines) {
+                int scanColor = new Color(0, 0, 0, (int) (36.0F * alpha)).getRGB();
+                for (float ly = y + 3.0F; ly < y + cardHeight - 2.0F; ly += 3.0F) {
+                    RenderUtil.drawRect(x + 2.0F, ly, x + cardWidth - 2.0F, ly + 1.0F, scanColor);
+                }
+            }
+
+            // Segmented progress bar along the bottom.
+            float segW = 6.0F;
+            float segGap = 2.0F;
+            float segY = y + cardHeight - 6.0F;
+            float segX1 = x + 8.0F;
+            float segX2 = x + cardWidth - 8.0F;
+            int segCount = Math.max(1, (int) ((segX2 - segX1 + segGap) / (segW + segGap)));
+            int lit = Math.round(progress * segCount);
+            int segLit = new Color(themeR, themeG, themeB, (int) (255.0F * alpha)).getRGB();
+            int segOff = new Color(themeR / 4, themeG / 4, themeB / 4, (int) (140.0F * alpha)).getRGB();
+            for (int s = 0; s < segCount; s++) {
+                float sx = segX1 + s * (segW + segGap);
+                RenderUtil.drawRect(sx, segY, Math.min(sx + segW, segX2), segY + 3.0F, s < lit ? segLit : segOff);
+            }
+
             RenderUtil.disableRenderState();
 
             GlStateManager.disableDepth();
             GlStateManager.enableBlend();
             GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-            int nameColor = new Color(240, 244, 250, (int) (245.0F * alpha)).getRGB();
-            int stateColor = new Color(neonR, neonG, neonB, (int) (245.0F * alpha)).getRGB();
-            String stateText = entry.enabled ? "ON" : "OFF";
-            float textHeight = FontManager.getFontHeight() * textScale;
+            float textX = x + 8.0F;
+            if (showIcon) {
+                boolean visible = !blink || (now / 350L) % 2L == 0L;
+                if (visible) {
+                    drawPixelIcon(x + 8.0F, y + (cardHeight - 14.0F) / 2.0F - 1.0F, 2.0F, entry.enabled, themeColor, alpha);
+                }
+                textX = x + 26.0F;
+            }
+
+            int nameColor = new Color(255, 255, 255, (int) (255.0F * alpha)).getRGB();
+            float textY = y + (cardHeight - textHeight) / 2.0F - 1.0F;
             GlStateManager.pushMatrix();
-            GlStateManager.translate(x + 10.0F, y + (cardHeight - textHeight) / 2.0F - 1.0F, 0.0F);
+            GlStateManager.translate(textX, textY, 0.0F);
             GlStateManager.scale(textScale, textScale, 1.0F);
-            FontManager.drawString(entry.moduleName, 0.0F, 0.0F, nameColor, false);
-            float stateWidth = FontManager.getStringWidth(stateText);
-            FontManager.drawString(stateText, (cardWidth - 18.0F) / textScale - stateWidth, 0.0F, stateColor, false);
+            FontManager.drawString(entry.moduleName.toUpperCase(), 0.0F, 0.0F, nameColor, true);
             GlStateManager.popMatrix();
 
             GlStateManager.enableDepth();
@@ -339,6 +424,24 @@ public class Notification extends Module {
         }
 
         GlStateManager.popMatrix();
+    }
+
+    private void drawPixelIcon(float x, float y, float pixel, boolean enabled, Color themeColor, float alpha) {
+        String[] pattern = enabled ? PIXEL_CHECK : PIXEL_CROSS;
+        int color = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), (int) (255.0F * alpha)).getRGB();
+        int shadowColor = new Color(0, 0, 0, (int) (140.0F * alpha)).getRGB();
+        RenderUtil.enableRenderState();
+        for (int row = 0; row < pattern.length; row++) {
+            String line = pattern[row];
+            for (int col = 0; col < line.length(); col++) {
+                if (line.charAt(col) != 'X') continue;
+                float px = x + col * pixel;
+                float py = y + row * pixel;
+                RenderUtil.drawRect(px + 1.0F, py + 1.0F, px + pixel + 1.0F, py + pixel + 1.0F, shadowColor);
+                RenderUtil.drawRect(px, py, px + pixel, py + pixel, color);
+            }
+        }
+        RenderUtil.disableRenderState();
     }
 
     private void drawStatusIcon(float x, float y, float iconSize, boolean enabled, Color themeColor, float alpha) {
