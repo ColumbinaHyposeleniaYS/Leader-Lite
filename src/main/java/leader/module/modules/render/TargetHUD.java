@@ -631,7 +631,8 @@ public class TargetHUD extends Module {
         final float barWidth = headX - barX - 10.0F;
         final float barHeight = 4.0F;
 
-        String modernHealthText = ChatColors.formatColor(String.format("&r&f%s&r", healthFormat.format(heal)));
+        String healthStr = heal == Math.floor(heal) ? String.format("%.0f", heal) : healthFormat.format(heal);
+        String modernHealthText = ChatColors.formatColor(String.format("&r&f%s&r", healthStr));
         float modernHealthWidth = this.getTextWidth(modernHealthText);
 
         float posX = this.renderingFollow ? -cardWidth / 2.0F : this.offX.getValue().floatValue() / this.scale.getValue();
@@ -686,27 +687,20 @@ public class TargetHUD extends Module {
         float shake = hitProgress > 0.0F ? (float) Math.sin(System.currentTimeMillis() * 0.08D) * 3.0F * hitProgress : 0.0F;
         float filledWidth = Math.max(2.0F, barWidth * healthRatio);
 
-        // Frosted-glass card: soft white rim, translucent dark pane, a faint
-        // health-color tint and a gentle top shine.
+        // Flat card: thin rim + single translucent pane. No tint, no shine.
         int glassAlpha = Math.max(150, Math.min(205, this.getBackgroundAlpha()));
         int rimColor = this.outline.getValue()
-                ? new Color(targetColor.getRed(), targetColor.getGreen(), targetColor.getBlue(), 110).getRGB()
-                : new Color(255, 255, 255, 38).getRGB();
+                ? new Color(targetColor.getRed(), targetColor.getGreen(), targetColor.getBlue(), 90).getRGB()
+                : new Color(255, 255, 255, 30).getRGB();
         int glassColor = new Color(14, 16, 22, glassAlpha).getRGB();
-        int tintColor = new Color(healthBarColor.getRed(), healthBarColor.getGreen(), healthBarColor.getBlue(), 12).getRGB();
-        int shineColor = new Color(255, 255, 255, 20).getRGB();
 
         RenderUtil.drawRoundedRectWithGl(0.0F, 0.0F, cardWidth, cardHeight, radius, rimColor);
         RenderUtil.drawRoundedRectWithGl(1.0F, 1.0F, cardWidth - 1.0F, cardHeight - 1.0F, radius - 1.0F, glassColor);
-        RenderUtil.drawRoundedRectWithGl(1.0F, 1.0F, cardWidth - 1.0F, cardHeight - 1.0F, radius - 1.0F, tintColor);
-        RenderUtil.drawRoundedRectWithGl(2.0F, 2.0F, cardWidth - 2.0F, cardHeight * 0.45F, radius - 2.0F, shineColor);
 
-        // Health bar: dim track, glowing fill.
+        // Health bar: dim track + solid fill, no glow.
         int trackColor = new Color(255, 255, 255, 26).getRGB();
-        int glowColor = new Color(healthBarColor.getRed(), healthBarColor.getGreen(), healthBarColor.getBlue(), 55).getRGB();
         int fillColor = new Color(healthBarColor.getRed(), healthBarColor.getGreen(), healthBarColor.getBlue(), 235).getRGB();
         RenderUtil.drawRoundedRectWithGl(barX, barY, barX + barWidth, barY + barHeight, barHeight / 2.0F, trackColor);
-        RenderUtil.drawRoundedRectWithGl(barX, barY - 1.0F, barX + filledWidth, barY + barHeight + 1.0F, (barHeight + 2.0F) / 2.0F, glowColor);
         RenderUtil.drawRoundedRectWithGl(barX, barY, barX + filledWidth, barY + barHeight, barHeight / 2.0F, fillColor);
 
         GlStateManager.disableDepth();
@@ -717,8 +711,6 @@ public class TargetHUD extends Module {
         this.drawText(modernHealthText, barX + barWidth - modernHealthWidth, 20.0F, new Color(235, 238, 244, 245).getRGB());
 
         if (this.head.getValue() && this.headTexture != null) {
-            RenderUtil.drawRoundedRectWithGl(headX - 1.5F, headY - 1.5F, headX + headSize + 1.5F, headY + headSize + 1.5F, 6.5F,
-                    new Color(255, 255, 255, 30).getRGB());
             RenderUtil.drawRoundedRectWithGl(headX - 0.5F, headY - 0.5F, headX + headSize + 0.5F, headY + headSize + 0.5F, 6.0F,
                     new Color(20, 22, 30, 160).getRGB());
             // drawRoundedRectWithGl re-enables depth and disables blend; restore

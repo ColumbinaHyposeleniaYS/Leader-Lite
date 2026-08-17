@@ -229,24 +229,15 @@ public class Notification extends Module {
                 final float by = y;
                 ShaderElement.addBlurTask(() -> RenderUtil.drawRoundedRectWithGl(bx, by, bx + cardWidth, by + cardHeight, radius, -1));
             }
-
-            // Frosted-glass card: white rim, translucent dark pane, soft theme
-            // tint and a gentle top shine.
-            int rimColor = new Color(255, 255, 255, (int) (34.0F * alpha)).getRGB();
+            int rimColor = new Color(255, 255, 255, (int) (30.0F * alpha)).getRGB();
             int glassColor = new Color(13, 15, 21, (int) (178.0F * alpha)).getRGB();
-            int tintColor = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), (int) (14.0F * alpha)).getRGB();
-            int shineColor = new Color(255, 255, 255, (int) (18.0F * alpha)).getRGB();
             int accent = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), (int) (235.0F * alpha)).getRGB();
-            int accentGlow = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), (int) (60.0F * alpha)).getRGB();
             int accentSoft = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), (int) (42.0F * alpha)).getRGB();
             int track = new Color(255, 255, 255, (int) (26.0F * alpha)).getRGB();
 
             RenderUtil.drawRoundedRectWithGl(x, y, x + cardWidth, y + cardHeight, radius, rimColor);
             RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 1.0F, x + cardWidth - 1.0F, y + cardHeight - 1.0F, radius - 1.0F, glassColor);
-            RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 1.0F, x + cardWidth - 1.0F, y + cardHeight - 1.0F, radius - 1.0F, tintColor);
-            RenderUtil.drawRoundedRectWithGl(x + 2.0F, y + 2.0F, x + cardWidth - 2.0F, y + cardHeight * 0.45F, radius - 2.0F, shineColor);
-            // Left accent bar with a soft glow behind it.
-            RenderUtil.drawRoundedRectWithGl(x + 2.0F, y + 6.5F, x + 5.5F, y + cardHeight - 6.5F, 1.75F, accentGlow);
+            // Left accent bar.
             RenderUtil.drawRoundedRectWithGl(x + 3.0F, y + 7.5F, x + 4.5F, y + cardHeight - 7.5F, 0.75F, accent);
             RenderUtil.drawRoundedRectWithGl(x + cardWidth - 23.0F, y + 7.0F, x + cardWidth - 9.0F, y + 21.0F, 4.0F, accentSoft);
 
@@ -260,7 +251,7 @@ public class Notification extends Module {
 
             int nameColor = new Color(245, 247, 252, (int) (245.0F * alpha)).getRGB();
             int stateColor = new Color(themeColor.getRed(), themeColor.getGreen(), themeColor.getBlue(), (int) (245.0F * alpha)).getRGB();
-            String stateText = entry.enabled ? "Enabled" : "Disabled";
+            String stateText = entry.enabled ? "ON" : "OFF";
             GlStateManager.pushMatrix();
             GlStateManager.translate(x + 10.0F, y + 5.0F, 0.0F);
             GlStateManager.scale(textScale, textScale, 1.0F);

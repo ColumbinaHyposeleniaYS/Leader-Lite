@@ -23,6 +23,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.play.client.C02PacketUseEntity;
 import net.minecraft.network.play.client.C0APacketAnimation;
+import net.minecraft.network.play.client.C0BPacketEntityAction;
 import net.minecraft.network.play.server.S12PacketEntityVelocity;
 import net.minecraft.network.play.server.S19PacketEntityStatus;
 import net.minecraft.network.play.server.S27PacketExplosion;
@@ -147,8 +148,8 @@ public class Velocity extends Module {
                 if (mode.getValue() == 1 && smartTimes.getValue()){
                     hitCount = computeReduceTicks((int) event.getX(), (int) event.getZ());
                 }
-                if (delay.getValue() && !groundDelay.getValue() && mc.thePlayer.onGround){
-                    if (jump.getValue() && this.mode.getValue() == 1){
+                if (delay.getValue() && !groundDelay.getValue() && mc.thePlayer.onGround && event.getY() > 0.0){
+                    if (jump.getValue() && this.mode.getValue() == 1 && !mc.thePlayer.isBurning()){
                         jumpFlag = true;
                     }
                     ticksSinceVelocity = 0;
@@ -242,7 +243,7 @@ public class Velocity extends Module {
                     if (knockbackTimer >= startReleaseTicks.getValue()) {
                         releaseVelocityBlink();
                     }
-                } else if (knockback && mc.thePlayer.hurtTime <= startBlinkHurtTime.getValue()) {
+                } else if (knockback && mc.thePlayer.hurtTime == startBlinkHurtTime.getValue()) {
                     if (forceBlocking.getValue()) {
                         KillAura killAura = (KillAura) Leader.moduleManager.getModule(KillAura.class);
                         if (killAura != null && killAura.isEnabled() && killAura.isPlayerBlocking()) {
@@ -279,9 +280,7 @@ public class Velocity extends Module {
                             } else {
                                 mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(Objects.requireNonNull(killAura.getTarget()), C02PacketUseEntity.Action.ATTACK));
                             }
-                            mc.thePlayer.motionX *= 0.6D;
-                            mc.thePlayer.motionZ *= 0.6D;
-                            mc.thePlayer.setSprinting(false);
+                            applyHitSlowDown(false);
                         }
                         else {
                             extraAttacked = false;
@@ -318,9 +317,7 @@ public class Velocity extends Module {
                                             } else {
                                                 mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(Objects.requireNonNull(killAura.getTarget()), C02PacketUseEntity.Action.ATTACK));
                                             }
-                                            mc.thePlayer.motionX *= 0.6D;
-                                            mc.thePlayer.motionZ *= 0.6D;
-                                            if (!keepSprint.getValue()) mc.thePlayer.setSprinting(false);
+                                            applyHitSlowDown(true);
                                         }
                                     } else {
                                         if (cancelKillAuraAttack.getValue()) cancellingKillAuraAttack = true;
@@ -331,9 +328,7 @@ public class Velocity extends Module {
                                         } else {
                                             mc.getNetHandler().addToSendQueue(new C02PacketUseEntity(Objects.requireNonNull(targetA.entityHit), C02PacketUseEntity.Action.ATTACK));
                                         }
-                                        mc.thePlayer.motionX *= 0.6D;
-                                        mc.thePlayer.motionZ *= 0.6D;
-                                        if (!keepSprint.getValue()) mc.thePlayer.setSprinting(false);
+                                        applyHitSlowDown(true);
                                     }
                                 }
                             }
@@ -392,10 +387,26 @@ public class Velocity extends Module {
         blinkActive = wasActive;
         boolean wasBlinking = Leader.blinkManager.isBlinking();
         Leader.blinkManager.blinking = false;
+        int i = 0;
+        boolean serverSprinting = mc.thePlayer.isSprinting();
+        boolean slowed = false;
         for (net.minecraft.network.Packet<?> p : Leader.blinkManager.blinkedPackets) {
+            if (p instanceof C0BPacketEntityAction){
+                if (((C0BPacketEntityAction) p).getAction() == C0BPacketEntityAction.Action.START_SPRINTING){
+                    serverSprinting = true;
+                }
+                if (((C0BPacketEntityAction) p).getAction() == C0BPacketEntityAction.Action.STOP_SPRINTING){
+                    serverSprinting = false;
+                }
+            }
             if (p instanceof C02PacketUseEntity) {
-                mc.thePlayer.motionX *= factor;
-                mc.thePlayer.motionZ *= factor;
+                i++;
+                if (serverSprinting && !slowed) {
+                    mc.thePlayer.motionX *= factor;
+                    mc.thePlayer.motionZ *= factor;
+                    mc.thePlayer.setSprinting(false);
+                    slowed = true;
+                }
             }
             PacketUtil.sendPacketNoEvent(p);
         }
@@ -484,6 +495,15 @@ public class Velocity extends Module {
 
     public void dbg(String msg) {
         if (debug.getValue()) ChatUtil.sendFormatted(msg);
+    }
+
+    private void applyHitSlowDown(boolean respectKeepSprint) {
+        HitSlowDownEvent hitSlowDownEvent = (HitSlowDownEvent) EventManager.call(new HitSlowDownEvent());
+        mc.thePlayer.motionX *= hitSlowDownEvent.getSlowDown();
+        mc.thePlayer.motionZ *= hitSlowDownEvent.getSlowDown();
+        if (!hitSlowDownEvent.getSprint() && (!respectKeepSprint || !keepSprint.getValue())) {
+            mc.thePlayer.setSprinting(false);
+        }
     }
 
     @Override

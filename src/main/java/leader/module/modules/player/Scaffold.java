@@ -2,6 +2,9 @@ package leader.module.modules.player;
 
 import leader.Leader;
 import leader.module.modules.movement.Stuck;
+import leader.module.modules.render.FontManager;
+import leader.module.modules.render.HUD;
+import org.lwjgl.opengl.GL11;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScaledResolution;
@@ -50,6 +53,7 @@ public class Scaffold extends Module {
     public final BooleanProperty clutch = new BooleanProperty("Clutch", true);
     public final BooleanProperty onlyInVoid = new BooleanProperty("Only Void", false, this.clutch::getValue);
     public final BooleanProperty bPSRender = new BooleanProperty("Render BPS", true);
+    public final BooleanProperty blockCounter = new BooleanProperty("Block Counter", false);
     public final FloatProperty edgeThreshold = new FloatProperty("Edge Threshold", 0.15F, 0.01F, 0.5F, () -> mode.getValue() == 2);
     public final BooleanProperty ticksLimit = new BooleanProperty("Ticks Limit", false, () -> mode.getValue() == 2);
     public final IntProperty limitTicks = new IntProperty("Limit Ticks", 10, 1, 40, () -> mode.getValue() == 2 && ticksLimit.getValue());
@@ -766,19 +770,21 @@ public class Scaffold extends Module {
 
     @EventTarget
     public void onRender(Render2DEvent event) {
-        if (this.isEnabled() && bPSRender.getValue()) {
-            int count = 0;
-            for (int i = 0; i < 9; i++) {
-                ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
-                if (stack != null && stack.stackSize > 0) {
-                    Item item = stack.getItem();
-                    if (item instanceof ItemBlock) {
-                        Block block = ((ItemBlock) item).getBlock();
-                        if (!BlockUtil.isInteractable(block) && BlockUtil.isSolid(block)) count += stack.stackSize;
-                    }
+        if (!this.isEnabled()) return;
+        int count = 0;
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = mc.thePlayer.inventory.getStackInSlot(i);
+            if (stack != null && stack.stackSize > 0) {
+                Item item = stack.getItem();
+                if (item instanceof ItemBlock) {
+                    Block block = ((ItemBlock) item).getBlock();
+                    if (!BlockUtil.isInteractable(block) && BlockUtil.isSolid(block)) count += stack.stackSize;
                 }
             }
-            Scaffold.count = count;
+        }
+        Scaffold.count = count;
+
+        if (bPSRender.getValue()) {
             ScaledResolution sr = new ScaledResolution(mc);
             int barWidth = 100, barHeight = 4;
             int barX = sr.getScaledWidth() / 2 - barWidth / 2;
@@ -800,6 +806,71 @@ public class Scaffold extends Module {
             GlStateManager.enableDepth();
             GlStateManager.popMatrix();
         }
+        if (blockCounter.getValue()) {
+            renderBlockCounter();
+        }
+    }
+
+    private void renderBlockCounter() {
+        long now = System.currentTimeMillis();
+        String text = Scaffold.count + " Blocks";
+
+        HUD hud = (HUD) Leader.moduleManager.modules.get(HUD.class);
+        Color tc = hud != null ? hud.getColor(now) : new Color(0, 190, 255);
+
+        float textScale = 1.0F;
+        float textW = FontManager.getStringWidth(text) * textScale;
+        float textH = FontManager.getFontHeight() * textScale;
+
+        float padX = 12.0F;
+        float padY = 7.0F;
+        float dot = 4.0F;
+        float dotGap = 7.0F;
+        float cardW = padX + dot + dotGap + textW + padX;
+        float cardH = padY + textH + padY;
+        float radius = 6.0F;
+
+        ScaledResolution sr = new ScaledResolution(mc);
+        float x = sr.getScaledWidth() / 2.0F - cardW / 2.0F;
+        float y = sr.getScaledHeight() / 2.0F - cardH - 12.0F;
+
+        int rimCol = new Color(255, 255, 255, 36).getRGB();
+        int glassCol = new Color(13, 15, 21, 172).getRGB();
+        int tintCol = new Color(tc.getRed(), tc.getGreen(), tc.getBlue(), 14).getRGB();
+        int shineCol = new Color(255, 255, 255, 20).getRGB();
+
+        GlStateManager.pushMatrix();
+        RenderUtil.drawRoundedRectWithGl(x, y, x + cardW, y + cardH, radius, rimCol);
+        RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 1.0F, x + cardW - 1.0F, y + cardH - 1.0F, radius - 1.0F, glassCol);
+        RenderUtil.drawRoundedRectWithGl(x + 1.0F, y + 1.0F, x + cardW - 1.0F, y + cardH - 1.0F, radius - 1.0F, tintCol);
+        RenderUtil.drawRoundedRectWithGl(x + 2.0F, y + 2.0F, x + cardW - 2.0F, y + cardH * 0.45F, radius - 2.0F, shineCol);
+
+        float pulse = 0.7F + 0.3F * (float) Math.sin(now * 0.004D);
+        float dotY = y + (cardH - dot) / 2.0F;
+        int dotGlow = new Color(tc.getRed(), tc.getGreen(), tc.getBlue(), (int) (70.0F * pulse)).getRGB();
+        int dotCore = new Color(tc.getRed(), tc.getGreen(), tc.getBlue(), (int) (235.0F * pulse)).getRGB();
+        RenderUtil.drawRoundedRectWithGl(x + padX - 1.5F, dotY - 1.5F, x + padX + dot + 1.5F, dotY + dot + 1.5F, 3.0F, dotGlow);
+        RenderUtil.drawRoundedRectWithGl(x + padX, dotY, x + padX + dot, dotY + dot, 2.0F, dotCore);
+
+        GlStateManager.disableDepth();
+        GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+        float textX = x + padX + dot + dotGap;
+        float textY = y + (cardH - textH) / 2.0F + 1.0F;
+        int textColor = new Color(245, 245, 250, 245).getRGB();
+        int shadowColor = new Color(0, 0, 0, 80).getRGB();
+
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(textX, textY, 0.0F);
+        GlStateManager.scale(textScale, textScale, 1.0F);
+        FontManager.drawString(text, 0.8F, 0.8F, shadowColor, false);
+        FontManager.drawString(text, 0.0F, 0.0F, textColor, false);
+        GlStateManager.popMatrix();
+
+        GlStateManager.enableDepth();
+        GlStateManager.disableBlend();
+        GlStateManager.popMatrix();
     }
 
     @EventTarget

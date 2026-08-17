@@ -42,6 +42,7 @@ import leader.mixin.IAccessorPlayerControllerMP;
 import leader.module.Module;
 import leader.module.modules.misc.Disabler;
 import leader.module.modules.player.AutoBlockIn;
+import leader.module.modules.player.KeepSprint;
 import leader.module.modules.player.Scaffold;
 import leader.property.properties.*;
 import leader.util.*;
@@ -116,6 +117,8 @@ public class KillAura extends Module {
     private boolean postBlock = false;
     private boolean postSwap = false;
     private int testAttackTick = 0;
+    // Buffer 模式（KeepSprint "Buffer"）：延迟攻击包 1 tick 的状态标记。
+    private boolean bufferPending = false;
 
 
     public KillAura(){
@@ -169,6 +172,19 @@ public class KillAura extends Module {
 
     private boolean performAttack(float yaw, float pitch) {
         if (!Leader.playerStateManager.digging && !Leader.playerStateManager.placing) {
+            // Buffer 模式（KeepSprint "Buffer"）：结算上一 tick 缓存的延迟攻击包。
+            // 发送前重新检测：目标仍有效、未在格挡（防砍）、仍瞄准目标，否则放弃，避免被反作弊检测。
+            if (this.bufferPending) {
+                this.bufferPending = false;
+                if (this.target != null
+                        && this.isValidTarget(this.target.getEntity())
+                        && !(this.isPlayerBlocking() && this.autoBlock.getValue() != 1)
+                        && !((this.rotations.getValue() != 0 || !this.isBoxInAttackRange(this.target.getBox()))
+                            && RotationUtil.rayTrace(this.target.getBox(), yaw, pitch, this.attackRange.getValue()) == null)) {
+                    return this.sendAttackPacket();
+                }
+                return false;
+            }
             if (Velocity.stoppedBlock){
                 return false;
             }else if (this.isPlayerBlocking() && this.autoBlock.getValue() != 1) {
@@ -219,20 +235,18 @@ public class KillAura extends Module {
             }
             else {
                 this.attackDelayMS = this.attackDelayMS + this.getAttackDelay();
-                mc.thePlayer.swingItem();
+                if (!isBufferActive()) mc.thePlayer.swingItem();
                 if ((this.rotations.getValue() != 0 || !this.isBoxInAttackRange(this.target.getBox()))
                         && RotationUtil.rayTrace(this.target.getBox(), yaw, pitch, this.attackRange.getValue()) == null) {
                     return false;
                 } else {
-                    AttackEvent event = new AttackEvent(this.target.getEntity());
-                    EventManager.call(event);
-                    ((IAccessorPlayerControllerMP) mc.playerController).callSyncCurrentPlayItem();
-                    PacketUtil.sendPacket(new C02PacketUseEntity(this.target.getEntity(), Action.ATTACK));
-                    if (mc.playerController.getCurrentGameType() != GameType.SPECTATOR) {
-                        PlayerUtil.attackEntity(this.target.getEntity());
+                    if (this.isBufferActive()) {
+                        this.bufferPending = true;
+                        mc.thePlayer.setSprinting(false);
+                        KeyBindUtil.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), false);
+                        return false;
                     }
-                    this.hitRegistered = true;
-                    return true;
+                    return this.sendAttackPacket();
                 }
             }
         } else {
@@ -244,6 +258,25 @@ public class KillAura extends Module {
         ((IAccessorPlayerControllerMP) mc.playerController).callSyncCurrentPlayItem();
         this.startBlock(mc.thePlayer.getHeldItem());
     }
+
+    private boolean sendAttackPacket() {
+        if(isBufferActive()) mc.thePlayer.swingItem();
+        AttackEvent event = new AttackEvent(this.target.getEntity());
+        EventManager.call(event);
+        ((IAccessorPlayerControllerMP) mc.playerController).callSyncCurrentPlayItem();
+        PacketUtil.sendPacket(new C02PacketUseEntity(this.target.getEntity(), Action.ATTACK));
+        if (mc.playerController.getCurrentGameType() != GameType.SPECTATOR) {
+            PlayerUtil.attackEntity(this.target.getEntity());
+        }
+        this.hitRegistered = true;
+        return true;
+    }
+
+    private boolean isBufferActive() {
+        KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.getModule(KeepSprint.class);
+        return keepSprint != null && keepSprint.isEnabled() && keepSprint.isBufferMode();
+    }
+
     private void startBlock(ItemStack itemStack) {
         PacketUtil.sendPacket(new C08PacketPlayerBlockPlacement(itemStack));
         mc.thePlayer.setItemInUse(itemStack, itemStack.getMaxItemUseDuration());
@@ -1273,6 +1306,7 @@ public class KillAura extends Module {
         this.hitRegistered = false;
         this.attackDelayMS = 0L;
         this.blockTick = 0;
+        this.bufferPending = false;
     }
 
     @Override
@@ -1281,6 +1315,7 @@ public class KillAura extends Module {
         Velocity.extraAttacked = false;
         this.blockingState = false;
         this.fakeBlockState = false;
+        this.bufferPending = false;
         if (swapped){
             int handle = mc.thePlayer.inventory.currentItem;
             PacketUtil.sendPacket(new C09PacketHeldItemChange(handle));

@@ -32,7 +32,6 @@ import leader.util.TeamUtil;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Objects;
 
 public class AutoProjectiles extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
@@ -103,14 +102,16 @@ public class AutoProjectiles extends Module {
         if (!smartDelay.getValue()) {
             return throwDelay.getValue();
         }
+        EntityLivingBase t = getTarget();
+        if (t == null) return throwDelay.getValue();
         if (mc.gameSettings.keyBindBack.isKeyDown()) return 1;
-        if (RotationUtil.distanceToEntity(Objects.requireNonNull(getTarget())) <= 4.5) return 1;
-        if (RotationUtil.distanceToEntity(getTarget()) <= 6) return 2;
-        if (RotationUtil.distanceToEntity(getTarget()) <= 8) return 3;
-        if (RotationUtil.distanceToEntity(getTarget()) <= 9) return 5;
-        if (RotationUtil.distanceToEntity(getTarget()) <= 15) return 8;
-        if (RotationUtil.distanceToEntity(getTarget()) > 15) return 20;
-        return 1;
+        double dist = RotationUtil.distanceToEntity(t);
+        if (dist <= 4.5) return 1;
+        if (dist <= 6) return 2;
+        if (dist <= 8) return 3;
+        if (dist <= 9) return 5;
+        if (dist <= 15) return 8;
+        return 20;
     }
 
     private boolean hasProjectile() {
@@ -236,7 +237,7 @@ public class AutoProjectiles extends Module {
             this.switchBack();
             return;
         }
-        if (RotationUtil.distanceToEntity(target) <= minRange.getValue()){
+        if (target != null && RotationUtil.distanceToEntity(target) <= minRange.getValue()){
             this.target = null;
             this.throwState = 0;
             this.switchBack();

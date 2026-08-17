@@ -1,37 +1,24 @@
 package leader.module.modules.player;
 
 import leader.event.EventTarget;
-import leader.event.types.EventType;
 import leader.events.AttackEvent;
+import leader.events.HitSlowDownEvent;
 import leader.events.LivingUpdateEvent;
-import leader.events.PacketEvent;
-import leader.events.TickEvent;
-import leader.Leader;
 import leader.module.Module;
-import leader.module.modules.combat.KillAura;
 import leader.module.modules.combat.Velocity;
 import leader.property.properties.BooleanProperty;
-import leader.property.properties.IntProperty;
 import leader.property.properties.ModeProperty;
 import leader.property.properties.PercentProperty;
 import leader.util.KeyBindUtil;
-import leader.util.PacketUtil;
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.Entity;
-import net.minecraft.network.Packet;
-import net.minecraft.network.play.client.C02PacketUseEntity;
-import net.minecraft.network.play.client.C0APacketAnimation;
-import net.minecraft.util.MovingObjectPosition;
-
-import java.util.Deque;
-import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class KeepSprint extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
 
-    public final ModeProperty mode = new ModeProperty("Mode", 3, new String[]{"Vanilla", "Legit", "Grim", "Buffer"});
+    // 0 = Vanilla, 1 = Legit, 2 = Grim, 3 = Buffer
+    public final ModeProperty mode = new ModeProperty("Mode", 0, new String[]{"Vanilla", "Legit", "Grim", "Buffer"});
 
-    public final BooleanProperty onHurt = new BooleanProperty("OnHurt", false, () -> mode.getValue() == 1);
+    public final BooleanProperty onHurt = new BooleanProperty("OnHurt", false, () -> mode.getValue() == 1 || mode.getValue() == 3);
 
     public final PercentProperty slowdown = new PercentProperty("Slowdown", 0, () -> mode.getValue() == 0);
     public final BooleanProperty groundOnly = new BooleanProperty("Ground Only", false, () -> mode.getValue() == 0);
@@ -42,31 +29,13 @@ public class KeepSprint extends Module {
     public final PercentProperty factor = new PercentProperty("Factor", 65, () -> mode.getValue() == 2 && !autoFactor.getValue());
     public final BooleanProperty grimGroundOnly = new BooleanProperty("Ground Only", true, () -> mode.getValue() == 2);
 
-    public final PercentProperty bufferSlowdown = new PercentProperty("Buffer Slowdown", 100, () -> mode.getValue() == 3);
-    public final IntProperty bufferMaxTicks = new IntProperty("Buffer MaxTicks", 4, 1, 10, () -> mode.getValue() == 3);
-    public final BooleanProperty bufferGroundOnly = new BooleanProperty("Ground Only", true, () -> mode.getValue() == 3);
-
     private int disSprintTicks = 0;
-    private final Deque<Packet<?>> pendingSwing = new ConcurrentLinkedDeque<>();
-    private final Deque<BufferedAttack> bufferedAttacks = new ConcurrentLinkedDeque<>();
-    private int swingTicks = 0;
 
     public KeepSprint() {
         super("KeepSprint", false);
     }
-
-    private static class BufferedAttack {
-        final Packet<?> swing;
-        final Packet<?> attack;
-        final Entity target;
-        int ticks;
-
-        BufferedAttack(Packet<?> swing, Packet<?> attack, Entity target) {
-            this.swing = swing;
-            this.attack = attack;
-            this.target = target;
-            this.ticks = 0;
-        }
+    public boolean isBufferMode() {
+        return mode.getValue() == 3 && (mc.thePlayer.hurtTime == 0 || !onHurt.getValue());
     }
 
     public boolean shouldKeepSprint() {
@@ -77,7 +46,6 @@ public class KeepSprint extends Module {
                 if (grimGroundOnly.getValue() && !mc.thePlayer.onGround) return false;
                 return true;
             case 3:
-                if (bufferGroundOnly.getValue() && !mc.thePlayer.onGround) return false;
                 return true;
             default:
                 if (groundOnly.getValue() && !mc.thePlayer.onGround) return false;
@@ -88,7 +56,7 @@ public class KeepSprint extends Module {
     }
 
     public boolean isAttackNoSlow() {
-        return isEnabled() && (shouldKeepSprint() || mode.getValue() == 3);
+        return isEnabled() && shouldKeepSprint();
     }
 
     public double getSlowFactor() {
@@ -106,10 +74,26 @@ public class KeepSprint extends Module {
                 }
                 return factor.getValue().doubleValue() / 100.0;
             case 3:
-                if (bufferGroundOnly.getValue() && !mc.thePlayer.onGround) return 0.6;
                 return 1.0;
             default:
                 return 0.6 + 0.4 * (1.0 - slowdown.getValue().doubleValue() / 100.0);
+        }
+    }
+
+    @EventTarget
+    public void onHitSlowDown(HitSlowDownEvent event) {
+        if (!this.isEnabled()) return;
+        switch (mode.getValue()) {
+            case 0:
+            case 2:
+                if (shouldKeepSprint()) {
+                    event.setSlowDown(getSlowFactor());
+                    event.setSprint(true);
+                }
+                break;
+            case 1:
+            case 3:
+                break;
         }
     }
 
@@ -133,86 +117,13 @@ public class KeepSprint extends Module {
         }
     }
 
-    @EventTarget
-    public void onPacket(PacketEvent event) {
-        if (!this.isEnabled() || mode.getValue() != 3) return;
-        if (event.getType() != EventType.SEND) return;
-        if (bufferGroundOnly.getValue() && !mc.thePlayer.onGround) return;
-        if (event.getPacket() instanceof C0APacketAnimation) {
-            event.setCancelled(true);
-            pendingSwing.offer(event.getPacket());
-        } else if (event.getPacket() instanceof C02PacketUseEntity) {
-            C02PacketUseEntity c02 = (C02PacketUseEntity) event.getPacket();
-            if (c02.getAction() == C02PacketUseEntity.Action.ATTACK && !pendingSwing.isEmpty()) {
-                event.setCancelled(true);
-                Entity target = c02.getEntityFromWorld(mc.theWorld);
-                bufferedAttacks.offer(new BufferedAttack(pendingSwing.poll(), event.getPacket(), target));
-            }
-        }
-    }
-
-    @EventTarget
-    public void onTick(TickEvent event) {
-        if (!this.isEnabled() || mode.getValue() != 3) return;
-        if (event.getType() != EventType.PRE) return;
-        if (bufferedAttacks.isEmpty()) {
-            if (!pendingSwing.isEmpty()) {
-                if (++swingTicks > 2) {
-                    swingTicks = 0;
-                    while (!pendingSwing.isEmpty()) {
-                        PacketUtil.sendPacketNoEvent(pendingSwing.poll());
-                    }
-                }
-            } else {
-                swingTicks = 0;
-            }
-            return;
-        }
-        BufferedAttack ba = bufferedAttacks.peek();
-        ba.ticks++;
-        if (ba.ticks > bufferMaxTicks.getValue()) {
-            bufferedAttacks.poll();
-            return;
-        }
-        if (ba.target == null || ba.target.isDead) {
-            bufferedAttacks.poll();
-            return;
-        }
-        MovingObjectPosition mop = mc.objectMouseOver;
-        KillAura killAura = (KillAura) Leader.moduleManager.getModule(KillAura.class);
-        boolean killAuraAiming = killAura != null && killAura.isEnabled()
-                && killAura.getTarget() == ba.target && killAura.isAttackAllowed();
-        if (!killAuraAiming) {
-            if (mop == null || mop.typeOfHit != MovingObjectPosition.MovingObjectType.ENTITY || mop.entityHit != ba.target) return;
-        }
-        if (killAura != null && killAura.isEnabled() && killAura.isPlayerBlocking()) return;
-        double factor = 0.6 + 0.4 * (1.0 - bufferSlowdown.getValue().doubleValue() / 100.0);
-        mc.thePlayer.motionX *= factor;
-        mc.thePlayer.motionZ *= factor;
-        PacketUtil.sendPacketNoEvent(ba.swing);
-        PacketUtil.sendPacketNoEvent(ba.attack);
-        bufferedAttacks.poll();
-    }
-
     @Override
     public void onEnabled() {
         disSprintTicks = 0;
-        pendingSwing.clear();
-        bufferedAttacks.clear();
-        swingTicks = 0;
     }
 
     @Override
     public void onDisabled() {
-        while (!pendingSwing.isEmpty()) {
-            PacketUtil.sendPacketNoEvent(pendingSwing.poll());
-        }
-        while (!bufferedAttacks.isEmpty()) {
-            BufferedAttack ba = bufferedAttacks.poll();
-            PacketUtil.sendPacketNoEvent(ba.swing);
-            PacketUtil.sendPacketNoEvent(ba.attack);
-        }
-        swingTicks = 0;
         if (mode.getValue() == 1) {
             KeyBindUtil.updateKeyState(mc.gameSettings.keyBindSprint.getKeyCode());
         }
@@ -226,8 +137,6 @@ public class KeepSprint extends Module {
                     return new String[]{"Grim", String.format("%.0f%%", getSlowFactor() * 100)};
                 }
                 return new String[]{"Grim", factor.getValue() + "%"};
-            case 3:
-                return new String[]{"Buffer", bufferMaxTicks.getValue() + "t"};
             default:
                 return new String[]{this.mode.getModeString()};
         }

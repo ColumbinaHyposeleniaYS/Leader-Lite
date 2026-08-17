@@ -1,9 +1,8 @@
 package leader.util;
 
-import leader.Leader;
+import leader.event.EventManager;
+import leader.events.HitSlowDownEvent;
 import leader.module.modules.combat.Velocity;
-import leader.module.modules.misc.Disabler;
-import leader.module.modules.player.KeepSprint;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.client.Minecraft;
@@ -183,16 +182,11 @@ public class PlayerUtil {
                                     0.1,
                                     MathHelper.cos(mc.thePlayer.rotationYaw * (float) Math.PI / 180.0F) * (float) knockbackLevel * 0.5F
                             );
-                            KeepSprint keepSprint = (KeepSprint) Leader.moduleManager.modules.get(KeepSprint.class);
                             if (!Velocity.blinkActive) {
-                                if (keepSprint.isEnabled()
-                                        && keepSprint.isAttackNoSlow()) {
-                                    double factor = keepSprint.getSlowFactor();
-                                    mc.thePlayer.motionX *= factor;
-                                    mc.thePlayer.motionZ *= factor;
-                                } else {
-                                    mc.thePlayer.motionX *= 0.6;
-                                    mc.thePlayer.motionZ *= 0.6;
+                                HitSlowDownEvent event = (HitSlowDownEvent) EventManager.call(new HitSlowDownEvent());
+                                mc.thePlayer.motionX *= event.getSlowDown();
+                                mc.thePlayer.motionZ *= event.getSlowDown();
+                                if (!event.getSprint()) {
                                     mc.thePlayer.setSprinting(false);
                                 }
                             }
