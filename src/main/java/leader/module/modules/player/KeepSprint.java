@@ -35,7 +35,7 @@ public class KeepSprint extends Module {
         super("KeepSprint", false);
     }
     public boolean isBufferMode() {
-        return mode.getValue() == 3 && (mc.thePlayer.hurtTime == 0 || !onHurt.getValue());
+        return mode.getValue() == 3 && (mc.thePlayer.hurtTime == 0 || onHurt.getValue());
     }
 
     public boolean shouldKeepSprint() {
