@@ -1,4 +1,6 @@
-package cn.unfair.util.via;
+// Ported from the Unfair client (https://github.com/UnfairGaming/Unfair)
+// Original location: cn.unfair.util.via - adapted to leader.util.via for Leader-Lite.
+package leader.util.via;
 
 import com.viaversion.viabackwards.protocol.v1_19to1_18_2.Protocol1_19To1_18_2;
 import com.viaversion.viabackwards.protocol.v1_20_2to1_20.Protocol1_20_2To1_20;

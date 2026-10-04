@@ -1,4 +1,6 @@
-package cn.unfair.util.via;
+// Ported from the Unfair client (https://github.com/UnfairGaming/Unfair)
+// Original location: cn.unfair.util.via - adapted to leader.util.via for Leader-Lite.
+package leader.util.via;
 
 import com.google.common.collect.Sets;
 import net.minecraft.block.Block;
@@ -32,18 +34,18 @@ public final class DirtPathBlockTracker {
         }
 
         if (stack == null || stack.stackSize == 0 || !player.canPlayerEdit(placePos, side, stack)
-                || !world.canBlockBePlaced(cn.unfair.util.via.ModernBlocks.dirt_path(), placePos, false, side, null, stack)) {
+                || !world.canBlockBePlaced(leader.util.via.ModernBlocks.dirt_path(), placePos, false, side, null, stack)) {
             return false;
         }
 
         mark(placePos);
-        if (world.setBlockState(placePos, cn.unfair.util.via.ModernBlocks.dirt_path().getDefaultState(), 3)) {
+        if (world.setBlockState(placePos, leader.util.via.ModernBlocks.dirt_path().getDefaultState(), 3)) {
             world.checkLight(placePos);
             world.markBlockRangeForRenderUpdate(placePos.add(-1, -1, -1), placePos.add(1, 1, 1));
             world.playSoundEffect((float) placePos.getX() + 0.5F, (float) placePos.getY() + 0.5F, (float) placePos.getZ() + 0.5F,
-                    cn.unfair.util.via.ModernBlocks.dirt_path().stepSound.getPlaceSound(),
-                    (cn.unfair.util.via.ModernBlocks.dirt_path().stepSound.getVolume() + 1.0F) / 2.0F,
-                    cn.unfair.util.via.ModernBlocks.dirt_path().stepSound.getFrequency() * 0.8F);
+                    leader.util.via.ModernBlocks.dirt_path().stepSound.getPlaceSound(),
+                    (leader.util.via.ModernBlocks.dirt_path().stepSound.getVolume() + 1.0F) / 2.0F,
+                    leader.util.via.ModernBlocks.dirt_path().stepSound.getFrequency() * 0.8F);
 
             if (!player.capabilities.isCreativeMode) {
                 --stack.stackSize;
@@ -61,9 +63,9 @@ public final class DirtPathBlockTracker {
 
     public static IBlockState remap(BlockPos pos, IBlockState state) {
         if (pos != null && state != null && POSITIONS.contains(pos) && state.getBlock() == Blocks.grass) {
-            return cn.unfair.util.via.ModernBlocks.dirt_path().getDefaultState();
+            return leader.util.via.ModernBlocks.dirt_path().getDefaultState();
         }
-        if (pos != null && state != null && state.getBlock() != cn.unfair.util.via.ModernBlocks.dirt_path() && state.getBlock() != Blocks.grass) {
+        if (pos != null && state != null && state.getBlock() != leader.util.via.ModernBlocks.dirt_path() && state.getBlock() != Blocks.grass) {
             POSITIONS.remove(pos);
         }
         return state;

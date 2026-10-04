@@ -1,4 +1,6 @@
-package cn.unfair.util.via;
+// Ported from the Unfair client (https://github.com/UnfairGaming/Unfair)
+// Original location: cn.unfair.util.via - adapted to leader.util.via for Leader-Lite.
+package leader.util.via;
 
 import com.google.common.collect.Sets;
 import net.minecraft.block.state.IBlockState;
@@ -21,9 +23,9 @@ public final class RespawnAnchorBlockTracker {
 
     public static IBlockState remap(BlockPos pos, IBlockState state) {
         if (pos != null && state != null && POSITIONS.contains(pos) && state.getBlock() == Blocks.obsidian) {
-            return cn.unfair.util.via.ModernBlocks.registered("respawn_anchor").getDefaultState();
+            return leader.util.via.ModernBlocks.registered("respawn_anchor").getDefaultState();
         }
-        if (pos != null && state != null && state.getBlock() != cn.unfair.util.via.ModernBlocks.registered("respawn_anchor") && state.getBlock() != Blocks.obsidian) {
+        if (pos != null && state != null && state.getBlock() != leader.util.via.ModernBlocks.registered("respawn_anchor") && state.getBlock() != Blocks.obsidian) {
             POSITIONS.remove(pos);
         }
         return state;

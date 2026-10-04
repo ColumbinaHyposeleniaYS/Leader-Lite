@@ -1,3 +1,5 @@
+// Ported from the Unfair client (https://github.com/UnfairGaming/Unfair)
+// Original location: cn.unfair.util.via - adapted to leader.util.via for Leader-Lite.
 /*
  * This file is part of ViaForge - https://github.com/ViaVersion/ViaForge
  * Copyright (C) 2021-2026 Florian Reuth <git@florianreuth.de> and contributors
@@ -8,7 +10,7 @@
  * (at your option) any later version.
  */
 
-package cn.unfair.util.via;
+package leader.util.via;
 
 public final class ModernHorizontalCollision {
 

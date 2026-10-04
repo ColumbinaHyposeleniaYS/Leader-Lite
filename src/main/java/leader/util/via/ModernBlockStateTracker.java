@@ -1,4 +1,6 @@
-package cn.unfair.util.via;
+// Ported from the Unfair client (https://github.com/UnfairGaming/Unfair)
+// Original location: cn.unfair.util.via - adapted to leader.util.via for Leader-Lite.
+package leader.util.via;
 
 import com.google.common.collect.Maps;
 import com.viaversion.nbt.io.NBTIO;
@@ -731,7 +733,7 @@ public final class ModernBlockStateTracker {
             if (modernState != null && state != null) {
                 modernState.onApplied(pos, state);
             }
-            ((cn.unfair.util.via.ModernChunkAccess) chunk).refreshHeightMap();
+            ((leader.util.via.ModernChunkAccess) chunk).refreshHeightMap();
             minecraft.theWorld.markBlockForUpdate(pos);
         });
     }
@@ -860,14 +862,14 @@ public final class ModernBlockStateTracker {
         boolean extendedChanged = extendedSections != null;
         if (extendedSections != null) {
             for (Map.Entry<Integer, IBlockState[]> entry : extendedSections.entrySet()) {
-                ((cn.unfair.util.via.ModernChunkAccess) chunk).setExtendedSection(entry.getKey(), entry.getValue());
+                ((leader.util.via.ModernChunkAccess) chunk).setExtendedSection(entry.getKey(), entry.getValue());
             }
         }
 
         Map<BlockPos, ModernState> states = CHUNKS.get(chunkKey(chunk.xPosition, chunk.zPosition));
         if (states == null) {
             if (extendedChanged) {
-                ((cn.unfair.util.via.ModernChunkAccess) chunk).refreshHeightMap();
+                ((leader.util.via.ModernChunkAccess) chunk).refreshHeightMap();
             }
             return;
         }
@@ -882,7 +884,7 @@ public final class ModernBlockStateTracker {
             entry.getValue().onApplied(entry.getKey(), state);
         }
         if (extendedChanged) {
-            ((cn.unfair.util.via.ModernChunkAccess) chunk).refreshHeightMap();
+            ((leader.util.via.ModernChunkAccess) chunk).refreshHeightMap();
         }
     }
 

@@ -1,4 +1,6 @@
-package cn.unfair.util.via;
+// Ported from the Unfair client (https://github.com/UnfairGaming/Unfair)
+// Original location: cn.unfair.util.via - adapted to leader.util.via for Leader-Lite.
+package leader.util.via;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -68,7 +70,7 @@ public class BlockStatePredictionHandler implements AutoCloseable {
         Minecraft.getMinecraft().addScheduledTask(() -> {
             for (Map.Entry<BlockPos, ServerVerifiedState> e : toSync.entrySet()) {
                 ServerVerifiedState state = e.getValue();
-                ((cn.unfair.util.via.ModernWorldClient) world).syncBlockState(e.getKey(), state.blockState, state.playerPos);
+                ((leader.util.via.ModernWorldClient) world).syncBlockState(e.getKey(), state.blockState, state.playerPos);
             }
         });
         if (isC08) {

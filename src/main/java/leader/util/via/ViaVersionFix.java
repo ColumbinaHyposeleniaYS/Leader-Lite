@@ -1,4 +1,6 @@
-package cn.unfair.util.via;
+// Ported from the Unfair client (https://github.com/UnfairGaming/Unfair)
+// Original location: cn.unfair.util.via - adapted to leader.util.via for Leader-Lite.
+package leader.util.via;
 
 import com.viaversion.viaversion.api.Via;
 import com.viaversion.viaversion.api.connection.UserConnection;
@@ -15,9 +17,9 @@ public class ViaVersionFix {
         }
 
         final Minecraft mc = Minecraft.getMinecraft();
-        if (mc.theWorld instanceof cn.unfair.util.via.ModernWorldClient) {
+        if (mc.theWorld instanceof leader.util.via.ModernWorldClient) {
             try (BlockStatePredictionHandler handler =
-                         ((cn.unfair.util.via.ModernWorldClient) mc.theWorld).predictionHandler().startPredicting()) {
+                         ((leader.util.via.ModernWorldClient) mc.theWorld).predictionHandler().startPredicting()) {
                 return handler.getCurrentSequence();
             }
         }

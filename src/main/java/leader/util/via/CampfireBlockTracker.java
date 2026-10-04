@@ -1,4 +1,6 @@
-package cn.unfair.util.via;
+// Ported from the Unfair client (https://github.com/UnfairGaming/Unfair)
+// Original location: cn.unfair.util.via - adapted to leader.util.via for Leader-Lite.
+package leader.util.via;
 
 import com.google.common.collect.Maps;
 import net.minecraft.block.Block;
@@ -35,7 +37,7 @@ public final class CampfireBlockTracker {
 
         String model = ViaBackwardsItemModels.getModelName(stack);
         boolean soul = "soul_campfire".equals(model);
-        Block block = soul ? cn.unfair.util.via.ModernBlocks.soul_campfire() : cn.unfair.util.via.ModernBlocks.campfire();
+        Block block = soul ? leader.util.via.ModernBlocks.soul_campfire() : leader.util.via.ModernBlocks.campfire();
 
         if (stack == null || stack.stackSize == 0 || !player.canPlayerEdit(placePos, side, stack)
                 || !world.canBlockBePlaced(block, placePos, false, side, null, stack)) {
@@ -94,7 +96,7 @@ public final class CampfireBlockTracker {
         if (block instanceof BlockSlab) {
             return campfireState.withProperty(BlockCampfire.LIT, Boolean.FALSE);
         }
-        if (block != cn.unfair.util.via.ModernBlocks.campfire() && block != cn.unfair.util.via.ModernBlocks.soul_campfire()) {
+        if (block != leader.util.via.ModernBlocks.campfire() && block != leader.util.via.ModernBlocks.soul_campfire()) {
             STATES.remove(pos);
         }
 
