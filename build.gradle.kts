@@ -92,9 +92,9 @@ dependencies {
     runtimeOnly("me.djtheredstoner:DevAuth-forge-legacy:1.2.1")
 
     // === ViaForge skid: viaversion family, shaded into the jar ===
-    shadowImpl("com.viaversion:viaversion-common:5.11.0")
-    shadowImpl("com.viaversion:viabackwards-common:5.11.0")
-    shadowImpl("com.viaversion:viarewind-common:4.1.3")
+    shadowImpl("com.viaversion:viaversion-common:5.12.0")
+    shadowImpl("com.viaversion:viabackwards-common:5.12.0")
+    shadowImpl("com.viaversion:viarewind-common:4.2.0")
     shadowImpl("net.raphimc:ViaLegacy:3.0.14") {
         // Minecraft 1.8.9 ships its own gson
         exclude(group = "com.google.code.gson", module = "gson")

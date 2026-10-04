@@ -154,7 +154,11 @@ public class MixinNetHandlerPlayClient {
         final PlayerPositionTracker tracker = connection != null
                 ? connection.get(PlayerPositionTracker.class)
                 : null;
-        if (tracker != null && tracker.getConfirmId() != -1) {
+        // ViaRewind 4.2.0 rewrote PlayerPositionTracker: the single confirmId
+        // became a ConcurrentLinkedQueue<PendingTeleport> (peek/confirmTeleport).
+        // The S08 rewriter still fills tracker pos with the teleport target
+        // before queueing, so the early C06 below stays byte-identical.
+        if (tracker != null && tracker.hasPendingTeleports()) {
             viaforge$earlyTeleportResponses.incrementAndGet();
             viaforge$sendTrackerPosition(netManager, tracker);
         }
@@ -181,7 +185,7 @@ public class MixinNetHandlerPlayClient {
             return;
         }
 
-        if (tracker == null || tracker.getConfirmId() == -1) {
+        if (tracker == null || !tracker.hasPendingTeleports()) {
             networkManager.sendPacket(packet);
             return;
         }
