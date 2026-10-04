@@ -19,8 +19,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Item.class)
 public abstract class MixinItem {
 
+    // NOTE: must NOT be declared `native`! On Mixin 0.7.11 (JAVA_8 compat level) static
+    // invokers become "static method proxies" copied into the target class with a
+    // generated body; AccessorGenerator.createMethod only strips ACC_ABSTRACT and keeps
+    // ACC_NATIVE, producing a native method with a Code attribute -> JVM ClassFormatError
+    // ("Code attribute in native or abstract methods") when the target class is defined.
+    // A dummy body is the correct declaration: Mixin replaces it with the generated
+    // delegation to Item.registerItemBlock.
     @Invoker("registerItemBlock")
-    private static native void viaforge$invokeRegisterItemBlock(Block block);
+    private static void viaforge$invokeRegisterItemBlock(Block block) {
+        throw new AssertionError();
+    }
 
     @Inject(method = "registerItems", at = @At("TAIL"))
     private static void viaforge$registerModernItems(CallbackInfo ci) {
