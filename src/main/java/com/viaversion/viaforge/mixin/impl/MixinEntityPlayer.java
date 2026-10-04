@@ -10,11 +10,11 @@
 
 package com.viaversion.viaforge.mixin.impl;
 
+import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import com.viaversion.viaforge.common.ViaForgeCommon;
-import com.viaversion.viaforge.compat.ModernOffhandInteraction;
-import com.viaversion.viaforge.compat.ModernOffhandInventory;
-import com.viaversion.viaforge.compat.ModernPlayerPhysics;
+import cn.unfair.util.via.ModernOffhandInteraction;
+import cn.unfair.util.via.ModernOffhandInventory;
+import cn.unfair.util.via.ModernPlayerPhysics;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -43,7 +43,7 @@ public abstract class MixinEntityPlayer {
     @Inject(method = "getEyeHeight", at = @At("HEAD"), cancellable = true, require = 0)
     private void viaforge$modernPoseEyeHeight(CallbackInfoReturnable<Float> cir) {
         if ((Object) this instanceof EntityPlayerSP && viaforge$isModernTarget()) {
-            cir.setReturnValue(((ModernPlayerPhysics) this).viaforge$getModernEyeHeight());
+            cir.setReturnValue(((ModernPlayerPhysics) this).getModernEyeHeight());
         }
     }
 
@@ -71,7 +71,7 @@ public abstract class MixinEntityPlayer {
             return;
         }
 
-        ((ModernPlayerPhysics) this).viaforge$markLocalItemUseFinished();
+        ((ModernPlayerPhysics) this).markLocalItemUseFinished();
         final EntityPlayer player = (EntityPlayer) (Object) this;
         final ItemStack offhand = ModernOffhandInteraction.getOffhand(player);
         if (itemInUse == null || itemInUse != offhand) {
@@ -82,7 +82,7 @@ public abstract class MixinEntityPlayer {
         updateItemUse(original, 16);
         ItemStack result = original.onItemUseFinish(player.worldObj, player);
         result = ForgeEventFactory.onItemUseFinish(player, original, itemInUseCount, result);
-        ((ModernOffhandInventory) player.inventory).viaforge$setOffhand(
+        ((ModernOffhandInventory) player.inventory).setOffhand(
                 result != null && result.stackSize > 0 ? result : null
         );
         player.clearItemInUse();
@@ -90,16 +90,15 @@ public abstract class MixinEntityPlayer {
     }
 
     @Inject(method = "handleStatusUpdate", at = @At("HEAD"), require = 0)
-    private void viaforge$confirmServerItemUseFinished(byte id, CallbackInfo ci) {
+    private void confirmServerItemUseFinished(byte id, CallbackInfo ci) {
         if (id == 9
                 && (Object) this instanceof EntityPlayerSP
                 && viaforge$isModernTarget()) {
-            ((ModernPlayerPhysics) this).viaforge$confirmServerItemUseFinished();
+            ((ModernPlayerPhysics) this).confirmServerItemUseFinished();
         }
     }
 
     private static boolean viaforge$isModernTarget() {
-        final ViaForgeCommon manager = ViaForgeCommon.getManager();
-        return manager != null && manager.getTargetVersion() == ProtocolVersion.v1_20_5;
+        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
     }
 }

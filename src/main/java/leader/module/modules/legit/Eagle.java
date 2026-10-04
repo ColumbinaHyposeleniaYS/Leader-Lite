@@ -3,9 +3,12 @@ package leader.module.modules.legit;
 import leader.event.EventTarget;
 import leader.event.types.EventType;
 import leader.event.types.Priority;
+import leader.events.LoadWorldEvent;
 import leader.events.MoveInputEvent;
 import leader.events.TickEvent;
 import leader.module.Module;
+import cn.unfair.util.via.ViaProtocol;
+import leader.util.ChatUtil;
 import leader.util.ItemUtil;
 import leader.util.MoveUtil;
 import leader.util.PlayerUtil;
@@ -49,6 +52,23 @@ public class Eagle extends Module {
 
     public Eagle() {
         super("Eagle", false);
+    }
+
+    private void warnHighVersion() {
+        if (ViaProtocol.newerThanOrEqualTo1_14()) {
+            ChatUtil.dbg("&cDo not use Eagle in high versions");
+        }
+    }
+
+    @EventTarget
+    public void onLoadWorld(LoadWorldEvent event) {
+        if (!this.isEnabled()) return;
+        this.warnHighVersion();
+    }
+
+    @Override
+    public void onEnabled() {
+        this.warnHighVersion();
     }
 
     @EventTarget(Priority.LOWEST)

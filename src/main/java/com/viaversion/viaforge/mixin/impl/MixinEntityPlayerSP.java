@@ -10,11 +10,11 @@
 
 package com.viaversion.viaforge.mixin.impl;
 
+import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import com.viaversion.viaforge.common.ViaForgeCommon;
-import com.viaversion.viaforge.compat.ModernFluidPhysics;
-import com.viaversion.viaforge.compat.ModernOffhandPlayer;
-import com.viaversion.viaforge.compat.ModernPlayerPhysics;
+import cn.unfair.util.via.ModernFluidPhysics;
+import cn.unfair.util.via.ModernOffhandPlayer;
+import cn.unfair.util.via.ModernPlayerPhysics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.util.AxisAlignedBB;
@@ -187,7 +187,7 @@ public abstract class MixinEntityPlayerSP implements ModernPlayerPhysics, Modern
     }
 
     @Override
-    public void viaforge$swingOffhand() {
+    public void swingOffhand() {
         if (!viaforge$offhandSwinging
                 || viaforge$offhandSwingTicks >= viaforge$offhandSwingDuration / 2) {
             viaforge$offhandSwingTicks = 0;
@@ -198,7 +198,7 @@ public abstract class MixinEntityPlayerSP implements ModernPlayerPhysics, Modern
     }
 
     @Override
-    public float viaforge$getOffhandSwingProgress(float partialTicks) {
+    public float getOffhandSwingProgress(float partialTicks) {
         float delta = viaforge$offhandSwingProgress - viaforge$previousOffhandSwingProgress;
         if (delta < 0.0F) {
             delta += 1.0F;
@@ -208,7 +208,7 @@ public abstract class MixinEntityPlayerSP implements ModernPlayerPhysics, Modern
 
     /** Called after both vanilla and FDP have populated this tick's input. */
     @Override
-    public void viaforge$updateModernMovementInput(MovementInput input) {
+    public void updateModernMovementInput(MovementInput input) {
         if (!viaforge$isModernTarget()) {
             return;
         }
@@ -348,78 +348,78 @@ public abstract class MixinEntityPlayerSP implements ModernPlayerPhysics, Modern
     }
 
     @Override
-    public boolean viaforge$isModernSwimming() {
+    public boolean isModernSwimming() {
         return viaforge$modernSwimming;
     }
 
     @Override
-    public float viaforge$getModernEyeHeight() {
+    public float getModernEyeHeight() {
         return viaforge$modernEyeHeight;
     }
 
     @Override
-    public double viaforge$getModernWaterHeight() {
+    public double getModernWaterHeight() {
         return viaforge$modernWaterHeight;
     }
 
     @Override
-    public void viaforge$setModernWaterHeight(double height) {
+    public void setModernWaterHeight(double height) {
         viaforge$modernWaterHeight = height;
     }
 
     @Override
-    public double viaforge$getModernLavaHeight() {
+    public double getModernLavaHeight() {
         return viaforge$modernLavaHeight;
     }
 
     @Override
-    public void viaforge$setModernLavaHeight(double height) {
+    public void setModernLavaHeight(double height) {
         viaforge$modernLavaHeight = height;
     }
 
     @Override
-    public boolean viaforge$isTouchingModernLava() {
+    public boolean isTouchingModernLava() {
         return viaforge$touchingModernLava;
     }
 
     @Override
-    public void viaforge$setTouchingModernLava(boolean touching) {
+    public void setTouchingModernLava(boolean touching) {
         viaforge$touchingModernLava = touching;
     }
 
     @Override
-    public BlockPos viaforge$getMainSupportingBlock() {
+    public BlockPos getMainSupportingBlock() {
         return viaforge$mainSupportingBlock;
     }
 
     @Override
-    public boolean viaforge$wasSupportingBlockOnGround() {
+    public boolean wasSupportingBlockOnGround() {
         return viaforge$supportingBlockOnGround;
     }
 
     @Override
-    public void viaforge$setMainSupportingBlock(BlockPos position, boolean onGround) {
+    public void setMainSupportingBlock(BlockPos position, boolean onGround) {
         viaforge$mainSupportingBlock = position;
         viaforge$supportingBlockOnGround = onGround;
     }
 
     @Override
-    public boolean viaforge$isMinorHorizontalCollision() {
+    public boolean isMinorHorizontalCollision() {
         return viaforge$minorHorizontalCollision;
     }
 
     @Override
-    public void viaforge$setMinorHorizontalCollision(boolean minor) {
+    public void setMinorHorizontalCollision(boolean minor) {
         viaforge$minorHorizontalCollision = minor;
     }
 
     @Override
-    public void viaforge$markLocalItemUseFinished() {
+    public void markLocalItemUseFinished() {
         viaforge$localItemUseFinished = true;
     }
 
     @Override
-    public void viaforge$confirmServerItemUseFinished() {
+    public void confirmServerItemUseFinished() {
         viaforge$serverItemUseFinished = true;
     }
 
@@ -466,7 +466,7 @@ public abstract class MixinEntityPlayerSP implements ModernPlayerPhysics, Modern
     @Unique
     private static boolean viaforge$isModernEyeInWater(EntityPlayerSP player) {
         final double eyeY = player.posY
-                + ((ModernPlayerPhysics) player).viaforge$getModernEyeHeight()
+                + ((ModernPlayerPhysics) player).getModernEyeHeight()
                 - 0.1111111119389534D;
         final BlockPos eyePosition = new BlockPos(player.posX, eyeY, player.posZ);
         return eyePosition.getY() + (double) ModernFluidPhysics.getWaterHeight(
@@ -476,8 +476,7 @@ public abstract class MixinEntityPlayerSP implements ModernPlayerPhysics, Modern
     }
 
     private static boolean viaforge$isModernTarget() {
-        final ViaForgeCommon manager = ViaForgeCommon.getManager();
-        return manager != null && manager.getTargetVersion() == ProtocolVersion.v1_20_5;
+        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
     }
 
 }

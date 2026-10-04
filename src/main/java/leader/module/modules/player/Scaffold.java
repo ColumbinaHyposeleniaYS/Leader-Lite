@@ -27,6 +27,7 @@ import leader.event.types.Priority;
 import leader.events.*;
 import leader.management.RotationState;
 import leader.mixin.IAccessorEntity;
+import cn.unfair.util.via.ModernOffhandInteraction;
 import leader.module.Module;
 import leader.module.modules.movement.LongJump;
 import leader.property.properties.BooleanProperty;
@@ -83,6 +84,7 @@ public class Scaffold extends Module {
     public final FloatProperty placeSpeed = new FloatProperty("PlaceSpeed", 180.0F, 1.0F, 180.0F, () -> mode.getValue() == 3);
     public final IntProperty tellyTicks = new IntProperty("TellyTicks", 3, 1, 6, () -> mode.getValue() == 3);
 
+    private boolean usingOffhand = false;
     private int rotationTick = 0;
     private int lastSlot = -1;
     private int blockCount = -1;
@@ -255,8 +257,18 @@ public class Scaffold extends Module {
         return facing == null ? null : new BlockData(blockPos, facing);
     }
 
+    // Off-hand block support (ported from Unfair Scaffold): when 1.9+ protocol gives us
+    // an off-hand slot holding a placeable block, place from the off-hand and keep the main hand free.
+    private boolean hasOffhandBlock() {
+        if (!ModernOffhandInteraction.isModernTarget()) return false;
+        ItemStack offhand = ModernOffhandInteraction.getOffhand(mc.thePlayer);
+        return offhand != null && offhand.stackSize > 0 && ItemUtil.isBlock(offhand);
+    }
+
     private boolean place(BlockPos blockPos, EnumFacing enumFacing, Vec3 vec3) {
-        if (!ItemUtil.isHoldingBlock() || this.blockCount <= 0) return false;
+        this.usingOffhand = this.hasOffhandBlock();
+        ItemStack stack = this.usingOffhand ? ModernOffhandInteraction.getOffhand(mc.thePlayer) : mc.thePlayer.inventory.getCurrentItem();
+        if (stack == null || !ItemUtil.isBlock(stack) || this.blockCount <= 0) return false;
         if (this.strictRaytrace.getValue()) {
             float aimYaw = this.currentEvent != null ? this.currentEvent.getNewYaw() : mc.thePlayer.rotationYaw;
             float aimPitch = this.currentEvent != null ? this.currentEvent.getNewPitch() : mc.thePlayer.rotationPitch;
@@ -264,16 +276,28 @@ public class Scaffold extends Module {
             if (!this.isValidHit(mop, blockPos, enumFacing)) return false;
             vec3 = mop.hitVec;
         }
-        if (!mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld, mc.thePlayer.inventory.getCurrentItem(), blockPos, enumFacing, vec3)) {
+        boolean placed;
+        if (this.usingOffhand) {
+            placed = ModernOffhandInteraction.sendUseItemOnBlock(mc.thePlayer, blockPos, enumFacing, vec3);
+        } else {
+            placed = mc.playerController.onPlayerRightClick(mc.thePlayer, mc.theWorld, stack, blockPos, enumFacing, vec3);
+        }
+        if (!placed) {
             return false;
         }
-        if (mc.playerController.getCurrentGameType() != GameType.CREATIVE) this.blockCount--;
-        if (this.swing.getValue()) mc.thePlayer.swingItem();
-        else PacketUtil.sendPacket(new C0APacketAnimation());
+        if (!this.usingOffhand) {
+            if (mc.playerController.getCurrentGameType() != GameType.CREATIVE) this.blockCount--;
+            if (this.swing.getValue()) mc.thePlayer.swingItem();
+            else PacketUtil.sendPacket(new C0APacketAnimation());
+        }
         return true;
     }
 
     private void selectScaffoldBlock() {
+        if (this.hasOffhandBlock()) {
+            this.blockCount = ModernOffhandInteraction.getOffhand(mc.thePlayer).stackSize;
+            return;
+        }
         ItemStack held = mc.thePlayer.getHeldItem();
         int heldCount = ItemUtil.isBlock(held) ? held.stackSize : 0;
         this.blockCount = Math.min(this.blockCount, heldCount);
@@ -812,19 +836,23 @@ public class Scaffold extends Module {
             }
 
             if (this.canPlace()) {
-                ItemStack stack = mc.thePlayer.getHeldItem();
-                int count = ItemUtil.isBlock(stack) ? stack.stackSize : 0;
-                this.blockCount = Math.min(this.blockCount, count);
-                if (this.blockCount <= 0) {
-                    int slot = mc.thePlayer.inventory.currentItem;
-                    if (this.blockCount == 0) slot--;
-                    for (int i = slot; i > slot - 9; i--) {
-                        int hotbarSlot = (i % 9 + 9) % 9;
-                        ItemStack candidate = mc.thePlayer.inventory.getStackInSlot(hotbarSlot);
-                        if (ItemUtil.isBlock(candidate)) {
-                            mc.thePlayer.inventory.currentItem = hotbarSlot;
-                            this.blockCount = candidate.stackSize;
-                            break;
+                if (this.hasOffhandBlock()) {
+                    this.blockCount = ModernOffhandInteraction.getOffhand(mc.thePlayer).stackSize;
+                } else {
+                    ItemStack stack = mc.thePlayer.getHeldItem();
+                    int count = ItemUtil.isBlock(stack) ? stack.stackSize : 0;
+                    this.blockCount = Math.min(this.blockCount, count);
+                    if (this.blockCount <= 0) {
+                        int slot = mc.thePlayer.inventory.currentItem;
+                        if (this.blockCount == 0) slot--;
+                        for (int i = slot; i > slot - 9; i--) {
+                            int hotbarSlot = (i % 9 + 9) % 9;
+                            ItemStack candidate = mc.thePlayer.inventory.getStackInSlot(hotbarSlot);
+                            if (ItemUtil.isBlock(candidate)) {
+                                mc.thePlayer.inventory.currentItem = hotbarSlot;
+                                this.blockCount = candidate.stackSize;
+                                break;
+                            }
                         }
                     }
                 }

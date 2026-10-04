@@ -1,5 +1,6 @@
 package leader.util;
 
+import leader.Leader;
 import leader.enums.ChatColors;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ChatComponentText;
@@ -26,5 +27,9 @@ public class ChatUtil {
         if (ChatUtil.mc.thePlayer != null) {
             ChatUtil.mc.thePlayer.sendChatMessage(string);
         }
+    }
+
+    public static void dbg(String string) {
+        ChatUtil.sendFormatted(Leader.clientName + string);
     }
 }

@@ -3,7 +3,7 @@
  */
 package com.viaversion.viaforge.mixin.impl;
 
-import com.viaversion.viaforge.compat.ModernOffhandInventory;
+import cn.unfair.util.via.ModernOffhandInventory;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -20,12 +20,12 @@ public class MixinInventoryPlayer implements ModernOffhandInventory {
     private ItemStack viaforge$offhand;
 
     @Override
-    public ItemStack viaforge$getOffhand() {
+    public ItemStack getOffhand() {
         return viaforge$offhand;
     }
 
     @Override
-    public void viaforge$setOffhand(ItemStack stack) {
+    public void setOffhand(ItemStack stack) {
         viaforge$offhand = stack;
     }
 
@@ -92,7 +92,7 @@ public class MixinInventoryPlayer implements ModernOffhandInventory {
     @Inject(method = "copyInventory", at = @At("RETURN"))
     private void viaforge$copyOffhand(InventoryPlayer source, CallbackInfo ci) {
         if (source instanceof ModernOffhandInventory) {
-            viaforge$offhand = ((ModernOffhandInventory) source).viaforge$getOffhand();
+            viaforge$offhand = ((ModernOffhandInventory) source).getOffhand();
         }
     }
 }

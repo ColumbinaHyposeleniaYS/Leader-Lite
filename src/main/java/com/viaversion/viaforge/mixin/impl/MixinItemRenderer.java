@@ -3,10 +3,10 @@
  */
 package com.viaversion.viaforge.mixin.impl;
 
+import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import com.viaversion.viaforge.common.ViaForgeCommon;
-import com.viaversion.viaforge.compat.ModernOffhandInventory;
-import com.viaversion.viaforge.compat.ModernOffhandPlayer;
+import cn.unfair.util.via.ModernOffhandInventory;
+import cn.unfair.util.via.ModernOffhandPlayer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.renderer.GlStateManager;
@@ -52,7 +52,7 @@ public abstract class MixinItemRenderer {
             return;
         }
 
-        final ItemStack stack = ((ModernOffhandInventory) mc.thePlayer.inventory).viaforge$getOffhand();
+        final ItemStack stack = ((ModernOffhandInventory) mc.thePlayer.inventory).getOffhand();
         if (stack == null) {
             return;
         }
@@ -82,7 +82,7 @@ public abstract class MixinItemRenderer {
 
     private void viaforge$applyOffhandUseTransform(ItemStack stack, float partialTicks) {
         final float swingProgress = ((ModernOffhandPlayer) mc.thePlayer)
-                .viaforge$getOffhandSwingProgress(partialTicks);
+                .getOffhandSwingProgress(partialTicks);
         if (!mc.thePlayer.isUsingItem()
                 || mc.thePlayer.getItemInUse() != stack
                 || mc.thePlayer.getItemInUseCount() <= 0) {
@@ -103,7 +103,6 @@ public abstract class MixinItemRenderer {
     }
 
     private static boolean viaforge$isModernTarget() {
-        final ViaForgeCommon manager = ViaForgeCommon.getManager();
-        return manager != null && manager.getTargetVersion() == ProtocolVersion.v1_20_5;
+        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
     }
 }

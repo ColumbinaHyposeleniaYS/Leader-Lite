@@ -8,6 +8,7 @@ import leader.module.modules.misc.*;
 import leader.module.modules.movement.*;
 import leader.module.modules.player.*;
 import leader.module.modules.render.*;
+import leader.module.modules.world.*;
 import leader.module.modules.render.notification.Notification;
 import me.ksyz.accountmanager.AccountManager;
 import leader.command.CommandManager;
@@ -108,6 +109,7 @@ public class Leader {
         moduleManager.modules.put(InventoryClicker.class, new InventoryClicker());
         moduleManager.modules.put(BedNuker.class, new BedNuker());
         moduleManager.modules.put(InvManager.class,new InvManager());
+        moduleManager.modules.put(ItemFilter.class, new ItemFilter());
         moduleManager.modules.put(InvWalk.class, new InvWalk());
         moduleManager.modules.put(ItemESP.class, new ItemESP());
         moduleManager.modules.put(Jesus.class, new Jesus());
@@ -117,6 +119,7 @@ public class Leader {
         moduleManager.modules.put(KillAura.class, new KillAura());
         moduleManager.modules.put(LagRange.class, new LagRange());
         moduleManager.modules.put(LightningTracker.class, new LightningTracker());
+        moduleManager.modules.put(LegitTelly.class, new LegitTelly());
         moduleManager.modules.put(LongJump.class, new LongJump());
         moduleManager.modules.put(MCF.class, new MCF());
         moduleManager.modules.put(EnvModifier.class, new EnvModifier());

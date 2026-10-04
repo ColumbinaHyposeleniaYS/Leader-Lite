@@ -3,8 +3,8 @@
  */
 package com.viaversion.viaforge.mixin.impl;
 
+import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import com.viaversion.viaforge.common.ViaForgeCommon;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.inventory.ContainerPlayer;
@@ -24,9 +24,7 @@ public class MixinContainerPlayer {
             EntityPlayer player,
             CallbackInfo ci
     ) {
-        final ViaForgeCommon manager = ViaForgeCommon.getManager();
-        if (manager != null
-                && manager.getTargetVersion() == ProtocolVersion.v1_20_5
+        if (cn.unfair.util.via.ModernOffhandInteraction.isModernTarget()
                 && player.worldObj.isRemote) {
             ((ContainerAccessor) this).viaforge$addSlotToContainer(
                     new Slot(inventory, 45, 77, 62)

@@ -10,8 +10,8 @@
 
 package com.viaversion.viaforge.mixin.impl;
 
+import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import com.viaversion.viaforge.common.ViaForgeCommon;
 import net.minecraft.block.BlockLilyPad;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.AxisAlignedBB;
@@ -47,7 +47,6 @@ public abstract class MixinBlockLilyPad {
     }
 
     private static boolean viaforge$isModernTarget() {
-        final ViaForgeCommon manager = ViaForgeCommon.getManager();
-        return manager != null && manager.getTargetVersion() == ProtocolVersion.v1_20_5;
+        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
     }
 }

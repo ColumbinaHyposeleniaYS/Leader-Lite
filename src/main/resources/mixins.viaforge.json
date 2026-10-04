@@ -7,7 +7,6 @@
   "client": [
     "ContainerAccessor",
     "GuiContainerAccessor",
-    "MixinGuiMainMenu",
     "MixinGuiInventory",
     "MixinContainerPlayer",
     "MixinGameSettings",
@@ -26,20 +25,17 @@
     "MixinEntityPlayerSP",
     "MixinGuiMultiplayer",
     "MixinGuiOverlayDebug",
-    "MixinGuiScreenAddServer",
-    "MixinGuiScreenServerList",
     "MixinNetHandlerPlayClient",
     "MixinPlayerControllerMP",
     "MixinViaRewindBlockItemPacketRewriter",
-    "MixinServerData",
-    "compatibility.patcher.MixinProtocolVersionDetector",
-    "connect.MixinGuiConnecting_1",
-    "connect.MixinNetHandlerLoginClient",
     "connect.MixinNetworkManager",
     "connect.MixinNetworkManager_5",
-    "connect.MixinServerPinger",
     "javadowngrader.MixinBulkChunkType",
-    "javadowngrader.MixinChunkType"
+    "javadowngrader.MixinChunkType",
+    "MixinBlock",
+    "MixinItem",
+    "MixinChunk",
+    "MixinWorldClient"
   ],
   "verbose": true
 }

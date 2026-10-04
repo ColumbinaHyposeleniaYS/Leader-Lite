@@ -18,14 +18,15 @@
 
 package com.viaversion.viaforge.mixin.impl;
 
+import de.florianmichael.vialoadingbase.ViaLoadingBase;
+import cn.unfair.util.via.ViaVersionFix;
 import com.viaversion.viaversion.api.connection.UserConnection;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
 import com.viaversion.viaversion.connection.ConnectionDetails;
-import com.viaversion.viaforge.common.ViaForgeCommon;
-import com.viaversion.viaforge.compat.ModernPlayerPhysics;
-import com.viaversion.viaforge.compat.ModernOffhandInventory;
-import com.viaversion.viaforge.compat.ModernOffhandStorage;
-import com.viaversion.viaforge.compat.ModernSequenceStorage;
+import cn.unfair.util.via.ModernPlayerPhysics;
+import cn.unfair.util.via.ModernOffhandInventory;
+import cn.unfair.util.via.ModernOffhandStorage;
+import cn.unfair.util.via.ModernSequenceStorage;
 import com.viaversion.viarewind.protocol.v1_9to1_8.storage.PlayerPositionTracker;
 import io.netty.channel.Channel;
 import net.minecraft.client.Minecraft;
@@ -64,7 +65,7 @@ public class MixinNetHandlerPlayClient {
                 && packet.func_149173_d() == 45
                 && Minecraft.getMinecraft().thePlayer != null) {
             ((ModernOffhandInventory) Minecraft.getMinecraft().thePlayer.inventory)
-                    .viaforge$setOffhand(packet.func_149174_e());
+                    .setOffhand(packet.func_149174_e());
         }
     }
 
@@ -77,7 +78,7 @@ public class MixinNetHandlerPlayClient {
         }
 
         ((ModernOffhandInventory) Minecraft.getMinecraft().thePlayer.inventory)
-                .viaforge$setOffhand(packet.getItemStacks()[45]);
+                .setOffhand(packet.getItemStacks()[45]);
     }
 
     /** Match Grim's authoritative completion surface for consumed items. */
@@ -102,14 +103,14 @@ public class MixinNetHandlerPlayClient {
             return;
         }
 
-        ((ModernPlayerPhysics) minecraft.thePlayer).viaforge$confirmServerItemUseFinished();
+        ((ModernPlayerPhysics) minecraft.thePlayer).confirmServerItemUseFinished();
     }
 
     @Inject(method = "handleJoinGame", at = @At("RETURN"))
     public void sendConnectionDetails(CallbackInfo ci) {
         viaforge$earlyTeleportResponses.set(0);
         final Channel channel = Minecraft.getMinecraft().thePlayer.sendQueue.getNetworkManager().channel();
-        final UserConnection connection = channel.attr(ViaForgeCommon.VF_VIA_USER).get();
+        final UserConnection connection = ViaVersionFix.connection();
         if (connection == null) {
             return;
         }
@@ -121,7 +122,7 @@ public class MixinNetHandlerPlayClient {
     @Inject(method = "handleRespawn", at = @At("HEAD"))
     private void viaforge$resetModernSequence(S07PacketRespawn packet, CallbackInfo ci) {
         viaforge$earlyTeleportResponses.set(0);
-        final UserConnection connection = netManager.channel().attr(ViaForgeCommon.VF_VIA_USER).get();
+        final UserConnection connection = ViaVersionFix.connection();
         if (connection == null) {
             return;
         }
@@ -149,7 +150,7 @@ public class MixinNetHandlerPlayClient {
             return;
         }
 
-        final UserConnection connection = netManager.channel().attr(ViaForgeCommon.VF_VIA_USER).get();
+        final UserConnection connection = ViaVersionFix.connection();
         final PlayerPositionTracker tracker = connection != null
                 ? connection.get(PlayerPositionTracker.class)
                 : null;
@@ -172,7 +173,7 @@ public class MixinNetHandlerPlayClient {
             return;
         }
 
-        final UserConnection connection = networkManager.channel().attr(ViaForgeCommon.VF_VIA_USER).get();
+        final UserConnection connection = ViaVersionFix.connection();
         final PlayerPositionTracker tracker = connection != null
                 ? connection.get(PlayerPositionTracker.class)
                 : null;
@@ -218,8 +219,7 @@ public class MixinNetHandlerPlayClient {
 
     @Unique
     private static boolean viaforge$isModernTarget() {
-        final ViaForgeCommon manager = ViaForgeCommon.getManager();
-        return manager != null && manager.getTargetVersion() == ProtocolVersion.v1_20_5;
+        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
     }
 
 }

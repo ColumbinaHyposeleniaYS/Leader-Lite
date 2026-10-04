@@ -13,6 +13,7 @@ import leader.events.UpdateEvent;
 import leader.mixin.IAccessorC03PacketPlayer;
 import leader.mixin.IAccessorMinecraft;
 import leader.management.RotationState;
+import cn.unfair.util.via.ViaProtocol;
 import leader.module.Module;
 import leader.util.*;
 import leader.property.properties.BooleanProperty;
@@ -29,6 +30,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.client.C03PacketPlayer;
 import net.minecraft.network.play.client.C08PacketPlayerBlockPlacement;
+import net.minecraft.network.play.client.ServerBoundPlayerCommand;
 import net.minecraft.network.play.server.S08PacketPlayerPosLook;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.BlockPos;
@@ -45,7 +47,7 @@ public class NoFall extends Module {
     private final TimerUtil scoreboardResetTimer = new TimerUtil();
     private boolean slowFalling = false;
     private boolean lastOnGround = false;
-    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"PACKET", "BLINK", "NO_GROUND", "SPOOF", "MLG"});
+    public final ModeProperty mode = new ModeProperty("mode", 0, new String[]{"PACKET", "BLINK", "NO_GROUND", "SPOOF", "MLG", "Elytra"});
     public final FloatProperty distance = new FloatProperty("distance", 3.0F, 0.0F, 20.0F);
     public final IntProperty delay = new IntProperty("delay", 0, 0, 10000);
     public final IntProperty retrieveTick = new IntProperty("RetrieveTick", 0, 0, 20);
@@ -53,6 +55,8 @@ public class NoFall extends Module {
     public final BooleanProperty stopMove = new BooleanProperty("StopMove", false, () -> mode.getValue() == 4);
     public final ModeProperty moveFix = new ModeProperty("Move Fix", 1, new String[]{"None", "Silent", "Strict"}, () -> mode.getValue() == 4);
 
+    private boolean elytraSent = false;
+    private boolean elytraShouldRaiseY = false;
     private boolean mlgShouldReceive = false;
     private boolean mlgHandleStopMove = false;
     private int mlgOldSlot = -1;
@@ -69,10 +73,29 @@ public class NoFall extends Module {
         super("NoFall", false);
     }
 
+    @Override
+    public void onEnabled() {
+        this.elytraSent = false;
+        this.elytraShouldRaiseY = false;
+    }
+
+    private boolean isElytraAboutToLand() {
+        BlockPos below = new BlockPos(
+                (int) Math.floor(mc.thePlayer.posX),
+                (int) Math.floor(mc.thePlayer.posY) - 1,
+                (int) Math.floor(mc.thePlayer.posZ));
+        return !mc.theWorld.getBlockState(below).getBlock().getMaterial().isReplaceable();
+    }
+
     @EventTarget(Priority.HIGH)
     public void onPacket(PacketEvent event) {
         if (event.getType() == EventType.RECEIVE && event.getPacket() instanceof S08PacketPlayerPosLook) {
-            this.onDisabled();
+            if (this.mode.getValue() == 5 && this.elytraSent) {
+                // Elytra mode: the flagged teleport means the server accepted the glide, raise Y next tick
+                this.elytraShouldRaiseY = true;
+            } else {
+                this.onDisabled();
+            }
         } else if (this.isEnabled() && event.getType() == EventType.SEND && !event.isCancelled()) {
             if (event.getPacket() instanceof C03PacketPlayer) {
                 C03PacketPlayer packet = (C03PacketPlayer) event.getPacket();
@@ -135,6 +158,25 @@ public class NoFall extends Module {
                             }
                         }
                         break;
+                    case 5:
+                        // Elytra mode: send START_FALL_FLYING right before landing (1.9+ only)
+                        if (packet.isOnGround()) {
+                            this.elytraSent = false;
+                            this.elytraShouldRaiseY = false;
+                        } else if (!this.elytraSent
+                                && ViaProtocol.newerThanOrEqualTo1_9()
+                                && this.isElytraAboutToLand()) {
+                            AxisAlignedBB elytraAabb = mc.thePlayer.getEntityBoundingBox().expand(2.0, 0.0, 2.0);
+                            if (PlayerUtil.canFly(this.distance.getValue())
+                                    && !PlayerUtil.checkInWater(elytraAabb)
+                                    && this.canTrigger()) {
+                                this.packetDelayTimer.reset();
+                                PacketUtil.sendPacketNoEvent(new ServerBoundPlayerCommand(
+                                        mc.thePlayer.getEntityId(), ServerBoundPlayerCommand.Action.START_FALL_FLYING));
+                                this.elytraSent = true;
+                            }
+                        }
+                        break;
                 }
             }
         }
@@ -149,6 +191,13 @@ public class NoFall extends Module {
             if (this.mode.getValue() == 0 && this.slowFalling) {
                 PacketUtil.sendPacketNoEvent(new C03PacketPlayer(true));
                 mc.thePlayer.fallDistance = 0.0F;
+            }
+            if (this.mode.getValue() == 5 && this.elytraShouldRaiseY) {
+                PacketUtil.sendPacketNoEvent(new C03PacketPlayer.C04PacketPlayerPosition(
+                        mc.thePlayer.posX, mc.thePlayer.posY + 1.0E-9D, mc.thePlayer.posZ, false));
+                mc.thePlayer.fallDistance = 0.0F;
+                this.elytraSent = false;
+                this.elytraShouldRaiseY = false;
             }
         }
     }
@@ -371,6 +420,8 @@ public class NoFall extends Module {
     @Override
     public void onDisabled() {
         this.lastOnGround = false;
+        this.elytraSent = false;
+        this.elytraShouldRaiseY = false;
         this.mlgShouldReceive = false;
         this.mlgHandleStopMove = false;
         this.mlgOldSlot = -1;

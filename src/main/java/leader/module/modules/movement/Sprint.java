@@ -4,6 +4,7 @@ import leader.event.EventTarget;
 import leader.events.TickEvent;
 import leader.mixin.IAccessorEntityLivingBase;
 import leader.module.Module;
+import cn.unfair.util.via.ViaProtocol;
 import leader.util.KeyBindUtil;
 import leader.property.properties.BooleanProperty;
 import net.minecraft.client.Minecraft;
@@ -35,8 +36,21 @@ public class Sprint extends Module {
     @EventTarget
     public void onTick(TickEvent event) {
         if (this.isEnabled()) {
+            if (mc.thePlayer == null || mc.theWorld == null) {
+                this.wasSprinting = false;
+                KeyBindUtil.updateKeyState(mc.gameSettings.keyBindSprint.getKeyCode());
+                return;
+            }
             switch (event.getType()) {
                 case PRE:
+                    // 1.9+: sneaking blocks sprint; 1.13+: sprinting is cancelled in water
+                    if ((ViaProtocol.newerThanOrEqualTo1_9() && mc.gameSettings.keyBindSneak.isKeyDown())
+                            || (ViaProtocol.newerThanOrEqualTo1_13() && mc.thePlayer.isInWater())) {
+                        this.wasSprinting = false;
+                        mc.thePlayer.setSprinting(false);
+                        KeyBindUtil.updateKeyState(mc.gameSettings.keyBindSprint.getKeyCode());
+                        break;
+                    }
                     KeyBindUtil.setKeyBindState(mc.gameSettings.keyBindSprint.getKeyCode(), true);
                     break;
                 case POST:

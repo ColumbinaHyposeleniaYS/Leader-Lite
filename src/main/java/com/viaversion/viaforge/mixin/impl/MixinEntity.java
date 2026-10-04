@@ -10,11 +10,11 @@
 
 package com.viaversion.viaforge.mixin.impl;
 
+import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import com.viaversion.viaforge.common.ViaForgeCommon;
-import com.viaversion.viaforge.compat.ModernFluidPhysics;
-import com.viaversion.viaforge.compat.ModernHorizontalCollision;
-import com.viaversion.viaforge.compat.ModernPlayerPhysics;
+import cn.unfair.util.via.ModernFluidPhysics;
+import cn.unfair.util.via.ModernHorizontalCollision;
+import cn.unfair.util.via.ModernPlayerPhysics;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -258,9 +258,9 @@ public abstract class MixinEntity {
                 player.worldObj.provider.doesWaterVaporize() ? 0.007D : 0.0023333333333333335D
         );
 
-        physics.viaforge$setModernWaterHeight(waterHeight);
-        physics.viaforge$setModernLavaHeight(lavaHeight);
-        physics.viaforge$setTouchingModernLava(touchingLava);
+        physics.setModernWaterHeight(waterHeight);
+        physics.setModernLavaHeight(lavaHeight);
+        physics.setTouchingModernLava(touchingLava);
         if (touchingWater) {
             if (!inWater && !firstUpdate) {
                 resetHeight();
@@ -277,7 +277,7 @@ public abstract class MixinEntity {
     @Inject(method = "isInLava", at = @At("HEAD"), cancellable = true, require = 0)
     private void viaforge$modernLavaState(CallbackInfoReturnable<Boolean> cir) {
         if ((Object) this instanceof EntityPlayerSP && viaforge$isModernTarget()) {
-            cir.setReturnValue(((ModernPlayerPhysics) this).viaforge$isTouchingModernLava());
+            cir.setReturnValue(((ModernPlayerPhysics) this).isTouchingModernLava());
         }
     }
 
@@ -404,7 +404,7 @@ public abstract class MixinEntity {
         final EntityPlayerSP player = (EntityPlayerSP) (Object) this;
         final ModernPlayerPhysics physics = (ModernPlayerPhysics) player;
         final float yawRadians = player.rotationYaw * 0.017453292F;
-        physics.viaforge$setMinorHorizontalCollision(
+        physics.setMinorHorizontalCollision(
                 player.isCollidedHorizontally
                         && ModernHorizontalCollision.isMinorCollision(
                         MathHelper.sin(yawRadians),
@@ -416,7 +416,7 @@ public abstract class MixinEntity {
                 )
         );
         if (!player.onGround) {
-            physics.viaforge$setMainSupportingBlock(null, false);
+            physics.setMainSupportingBlock(null, false);
             return;
         }
 
@@ -431,15 +431,15 @@ public abstract class MixinEntity {
         );
         BlockPos support = viaforge$findSupportingBlock(player, below);
         if (support == null
-                && !(physics.viaforge$wasSupportingBlockOnGround()
-                && physics.viaforge$getMainSupportingBlock() == null)) {
+                && !(physics.wasSupportingBlockOnGround()
+                && physics.getMainSupportingBlock() == null)) {
             support = viaforge$findSupportingBlock(player, below.offset(
                     viaforge$moveStartX - player.posX,
                     0.0D,
                     viaforge$moveStartZ - player.posZ
             ));
         }
-        physics.viaforge$setMainSupportingBlock(support, true);
+        physics.setMainSupportingBlock(support, true);
         viaforge$applyModernSoulSandFactor(player, support);
     }
 
@@ -995,8 +995,7 @@ public abstract class MixinEntity {
     }
 
     private static boolean viaforge$isModernTarget() {
-        final ViaForgeCommon manager = ViaForgeCommon.getManager();
-        return manager != null && manager.getTargetVersion() == ProtocolVersion.v1_20_5;
+        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
     }
 
 }

@@ -10,9 +10,9 @@
 
 package com.viaversion.viaforge.mixin.impl;
 
+import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import com.viaversion.viaforge.common.ViaForgeCommon;
-import com.viaversion.viaforge.compat.ModernPlayerPhysics;
+import cn.unfair.util.via.ModernPlayerPhysics;
 import net.minecraft.block.BlockLadder;
 import net.minecraft.block.BlockTrapDoor;
 import net.minecraft.block.BlockFence;
@@ -28,6 +28,7 @@ import net.minecraft.util.BlockPos;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
@@ -39,7 +40,26 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(EntityLivingBase.class)
-public abstract class MixinEntityLivingBase {
+public abstract class MixinEntityLivingBase implements cn.unfair.util.via.ModernSwing {
+
+    @Shadow
+    private boolean isSwingInProgress;
+
+    @Shadow
+    private int swingProgressInt;
+
+    @Shadow
+    protected abstract int getArmSwingAnimationEnd();
+
+    @Override
+    public void swingClientSide() {
+        if (!this.isSwingInProgress
+                || this.swingProgressInt >= this.getArmSwingAnimationEnd() / 2
+                || this.swingProgressInt < 0) {
+            this.swingProgressInt = -1;
+            this.isSwingInProgress = true;
+        }
+    }
 
     /** Reproduce the 1.20.6 water and lava travel order instead of 1.8. */
     @Inject(method = "moveEntityWithHeading", at = @At("HEAD"), cancellable = true, require = 0)
@@ -61,7 +81,7 @@ public abstract class MixinEntityLivingBase {
             return;
         }
 
-        if (((ModernPlayerPhysics) player).viaforge$isModernSwimming() && !player.isRiding()) {
+        if (((ModernPlayerPhysics) player).isModernSwimming() && !player.isRiding()) {
             final double lookY = player.getLookVec().yCoord;
             final Material fluidAbove = player.worldObj.getBlockState(new BlockPos(
                     player.posX,
@@ -137,7 +157,7 @@ public abstract class MixinEntityLivingBase {
         player.moveFlying(strafe, forward, 0.02F);
         player.moveEntity(player.motionX, player.motionY, player.motionZ);
 
-        if (physics.viaforge$getModernLavaHeight() <= 0.4D) {
+        if (physics.getModernLavaHeight() <= 0.4D) {
             player.motionX *= 0.5D;
             player.motionY *= 0.800000011920929D;
             player.motionZ *= 0.5D;
@@ -183,7 +203,7 @@ public abstract class MixinEntityLivingBase {
         final EntityPlayerSP player = (EntityPlayerSP) entity;
         return player.isInWater()
                 && (!player.onGround
-                || ((ModernPlayerPhysics) player).viaforge$getModernWaterHeight() > 0.4D);
+                || ((ModernPlayerPhysics) player).getModernWaterHeight() > 0.4D);
     }
 
     /** Shallow lava uses a ground jump; deeper lava uses the fluid jump impulse. */
@@ -203,7 +223,7 @@ public abstract class MixinEntityLivingBase {
         final EntityPlayerSP player = (EntityPlayerSP) entity;
         return player.isInLava()
                 && (!player.onGround
-                || ((ModernPlayerPhysics) player).viaforge$getModernLavaHeight() > 0.4D);
+                || ((ModernPlayerPhysics) player).getModernLavaHeight() > 0.4D);
     }
 
     /**
@@ -344,7 +364,7 @@ public abstract class MixinEntityLivingBase {
             return fallback;
         }
 
-        final BlockPos support = ((ModernPlayerPhysics) player).viaforge$getMainSupportingBlock();
+        final BlockPos support = ((ModernPlayerPhysics) player).getMainSupportingBlock();
         if (support == null) {
             return fallback;
         }
@@ -382,8 +402,7 @@ public abstract class MixinEntityLivingBase {
 
     @Unique
     private static boolean viaforge$isModernTarget() {
-        final ViaForgeCommon manager = ViaForgeCommon.getManager();
-        return manager != null && manager.getTargetVersion() == ProtocolVersion.v1_20_5;
+        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
     }
 
 }

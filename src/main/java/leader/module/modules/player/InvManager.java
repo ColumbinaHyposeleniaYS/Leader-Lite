@@ -19,15 +19,20 @@ import leader.module.Module;
 import leader.property.properties.BooleanProperty;
 import leader.property.properties.IntProperty;
 import leader.property.properties.ModeProperty;
+import cn.unfair.util.via.ModernOffhandInteraction;
+import leader.module.modules.misc.ItemFilter;
 import leader.util.ItemUtil;
 import leader.util.PacketUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.function.Predicate;
 
 public class InvManager extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
+    // Slot property value 10 selects the off-hand slot (container slot 45) on 1.9+ servers
+    private static final int OFFHAND_TARGET_SLOT = 9;
     public final IntProperty minDelay = new IntProperty("Min Delay", 0, 0, 20);
     public final IntProperty maxDelay = new IntProperty("Max Delay", 0, 0, 20);
     public final IntProperty openDelay = new IntProperty("Open Delay", 0, 0, 20);
@@ -37,21 +42,21 @@ public class InvManager extends Module {
     public final BooleanProperty autoClose = new BooleanProperty("Auto Close", false, () -> mode.getValue() != 2);
     public final BooleanProperty autoArmor = new BooleanProperty("Auto Armor", true);
     public final BooleanProperty dropTrash = new BooleanProperty("Drop Trash", true);
-    public final IntProperty swordSlot = new IntProperty("Sword Slot", 1, 0, 9);
-    public final IntProperty pickaxeSlot = new IntProperty("Pickaxe Slot", 8, 0, 9);
-    public final IntProperty shovelSlot = new IntProperty("Shovel Slot", 7, 0, 9);
-    public final IntProperty axeSlot = new IntProperty("Axe Slot", 9, 0, 9);
-    public final IntProperty blocksSlot = new IntProperty("Blocks Slot", 2, 0, 9);
+    public final IntProperty swordSlot = new IntProperty("Sword Slot", 1, 0, 10);
+    public final IntProperty pickaxeSlot = new IntProperty("Pickaxe Slot", 8, 0, 10);
+    public final IntProperty shovelSlot = new IntProperty("Shovel Slot", 7, 0, 10);
+    public final IntProperty axeSlot = new IntProperty("Axe Slot", 9, 0, 10);
+    public final IntProperty blocksSlot = new IntProperty("Blocks Slot", 2, 0, 10);
     public final IntProperty blocks = new IntProperty("Blocks", 128, 64, 2304);
-    public final IntProperty throwsSlot = new IntProperty("Throws Slot", 4, 0, 9);
+    public final IntProperty throwsSlot = new IntProperty("Throws Slot", 4, 0, 10);
     public final IntProperty throwsAmount = new IntProperty("Throws Amount", 64, 16, 320);
     public final BooleanProperty rodThrowable = new BooleanProperty("Rod Throwable", false);
-    public final IntProperty gappleSlot = new IntProperty("Gapple Slot", 3, 0, 9);
+    public final IntProperty gappleSlot = new IntProperty("Gapple Slot", 3, 0, 10);
     public final BooleanProperty keepOre = new BooleanProperty("Keep Ore", true);
     public final BooleanProperty keepWaterBucket = new BooleanProperty("Keep Water Bucket", true);
-    public final IntProperty waterBucketSlot = new IntProperty("Water Bucket Slot", 6, 0, 9, keepWaterBucket::getValue);
+    public final IntProperty waterBucketSlot = new IntProperty("Water Bucket Slot", 6, 0, 10, keepWaterBucket::getValue);
     public final BooleanProperty keepBowAndArrows = new BooleanProperty("Keep Bow And Arrows", true);
-    public final IntProperty bowSlot = new IntProperty("Bow Slot", 5, 0, 9, keepBowAndArrows::getValue);
+    public final IntProperty bowSlot = new IntProperty("Bow Slot", 5, 0, 10, keepBowAndArrows::getValue);
 
     private int actionDelay = 0;
     private int oDelay = 0;
@@ -222,6 +227,103 @@ public class InvManager extends Module {
         return count;
     }
 
+    // ===== Off-hand (slot 45) support, ported from Unfair InvManager =====
+
+    private ItemStack getOffhandStack() {
+        return ModernOffhandInteraction.getOffhand(mc.thePlayer);
+    }
+
+    private boolean offhandMatches(Predicate<ItemStack> matcher) {
+        return ModernOffhandInteraction.isModernTarget() && matcher.test(this.getOffhandStack());
+    }
+
+    private boolean moveSlotToOffhand(int slot) {
+        if (!ModernOffhandInteraction.isModernTarget() || slot < 0 || slot >= 36) {
+            return false;
+        }
+        if (!(mc.thePlayer.openContainer instanceof ContainerPlayer)
+                || mc.thePlayer.openContainer.inventorySlots.size() <= 45
+                || mc.thePlayer.inventory.getItemStack() != null) {
+            return false;
+        }
+
+        int windowId = mc.thePlayer.inventoryContainer.windowId;
+        int sourceSlot = this.convertSlotIndex(slot);
+        this.clickSlot(windowId, sourceSlot, 0, 0);
+        this.clickSlot(windowId, 45, 0, 0);
+        if (mc.thePlayer.inventory.getItemStack() != null) {
+            this.clickSlot(windowId, sourceSlot, 0, 0);
+        }
+        return true;
+    }
+
+    private boolean isOffhandTarget(int slotProperty) {
+        return slotProperty - 1 == OFFHAND_TARGET_SLOT;
+    }
+
+    /**
+     * Moves the best matching stack of every category configured for the off-hand
+     * (slot property value 10) into container slot 45. One action per call.
+     */
+    private boolean organizeOffhandIfNeeded() {
+        if (!ModernOffhandInteraction.isModernTarget()) {
+            return false;
+        }
+        if (this.isOffhandTarget(this.swordSlot.getValue()) && !this.offhandMatches(ItemUtil::isSword)) {
+            int slot = ItemUtil.findSwordInInventorySlot(0, true);
+            return slot != -1 && this.moveSlotToOffhand(slot);
+        }
+        if (this.isOffhandTarget(this.pickaxeSlot.getValue()) && !this.offhandMatches(stack -> ItemUtil.isTool(stack, "pickaxe"))) {
+            int slot = ItemUtil.findInventorySlot("pickaxe", 0, true);
+            return slot != -1 && this.moveSlotToOffhand(slot);
+        }
+        if (this.isOffhandTarget(this.shovelSlot.getValue()) && !this.offhandMatches(stack -> ItemUtil.isTool(stack, "shovel"))) {
+            int slot = ItemUtil.findInventorySlot("shovel", 0, true);
+            return slot != -1 && this.moveSlotToOffhand(slot);
+        }
+        if (this.isOffhandTarget(this.axeSlot.getValue()) && !this.offhandMatches(stack -> ItemUtil.isTool(stack, "axe"))) {
+            int slot = ItemUtil.findInventorySlot("axe", 0, true);
+            return slot != -1 && this.moveSlotToOffhand(slot);
+        }
+        if (this.isOffhandTarget(this.blocksSlot.getValue()) && !this.offhandMatches(ItemUtil::isBlock)) {
+            int slot = ItemUtil.findInventorySlot(0);
+            return slot != -1 && this.moveSlotToOffhand(slot);
+        }
+        if (this.isOffhandTarget(this.throwsSlot.getValue()) && !this.offhandMatches(this::isThrowable)) {
+            int slot = this.findThrowableSlot(0, false);
+            return slot != -1 && this.moveSlotToOffhand(slot);
+        }
+        if (this.isOffhandTarget(this.gappleSlot.getValue()) && !this.offhandMatches(this::isGapple)) {
+            int slot = this.findGappleSlot(0, false);
+            return slot != -1 && this.moveSlotToOffhand(slot);
+        }
+        if (this.keepWaterBucket.getValue() && this.isOffhandTarget(this.waterBucketSlot.getValue()) && !this.offhandMatches(this::isWaterBucket)) {
+            int slot = this.findWaterBucketSlot(0, false);
+            return slot != -1 && this.moveSlotToOffhand(slot);
+        }
+        if (this.keepBowAndArrows.getValue() && this.isOffhandTarget(this.bowSlot.getValue()) && !this.offhandMatches(this::isBow)) {
+            int slot = this.findBowSlot(0, false);
+            return slot != -1 && this.moveSlotToOffhand(slot);
+        }
+        return false;
+    }
+
+    private boolean isOffhandOrganized() {
+        if (!ModernOffhandInteraction.isModernTarget()) {
+            return true;
+        }
+        if (this.isOffhandTarget(this.swordSlot.getValue()) && !this.offhandMatches(ItemUtil::isSword)) return false;
+        if (this.isOffhandTarget(this.pickaxeSlot.getValue()) && !this.offhandMatches(stack -> ItemUtil.isTool(stack, "pickaxe"))) return false;
+        if (this.isOffhandTarget(this.shovelSlot.getValue()) && !this.offhandMatches(stack -> ItemUtil.isTool(stack, "shovel"))) return false;
+        if (this.isOffhandTarget(this.axeSlot.getValue()) && !this.offhandMatches(stack -> ItemUtil.isTool(stack, "axe"))) return false;
+        if (this.isOffhandTarget(this.blocksSlot.getValue()) && !this.offhandMatches(ItemUtil::isBlock)) return false;
+        if (this.isOffhandTarget(this.throwsSlot.getValue()) && !this.offhandMatches(this::isThrowable)) return false;
+        if (this.isOffhandTarget(this.gappleSlot.getValue()) && !this.offhandMatches(this::isGapple)) return false;
+        if (this.keepWaterBucket.getValue() && this.isOffhandTarget(this.waterBucketSlot.getValue()) && !this.offhandMatches(this::isWaterBucket)) return false;
+        if (this.keepBowAndArrows.getValue() && this.isOffhandTarget(this.bowSlot.getValue()) && !this.offhandMatches(this::isBow)) return false;
+        return true;
+    }
+
     private void spoofOpen() {
         if (!spoofServerOpen) {
             PacketUtil.sendPacket(new C16PacketClientStatus(C16PacketClientStatus.EnumState.OPEN_INVENTORY_ACHIEVEMENT));
@@ -239,6 +341,7 @@ public class InvManager extends Module {
 
     private boolean isInventorySorted() {
         if (!isValidGameMode()) return true;
+        if (!isOffhandOrganized()) return false;
 
         int preferredSwordHotbarSlot = this.swordSlot.getValue() - 1;
         int equippedSwordSlot = ItemUtil.findSwordInInventorySlot(preferredSwordHotbarSlot, true);
@@ -405,6 +508,8 @@ public class InvManager extends Module {
 
                         if (!keepOre.getValue() && isOre) return false;
                         else if (!isThrowable && !isOre && !isGapple && !isProtectedWater && !isProtectedBowArrow
+                                && !ItemUtil.isRequiredInventoryItem(stack)
+                                && ItemFilter.shouldTrash(stack)
                                 && (ItemUtil.isNotSpecialItem(stack) || (isBlock && currentBlockCount >= this.blocks.getValue())))
                             return false;
                         if (isBlock) currentBlockCount += stack.stackSize;
@@ -515,6 +620,9 @@ public class InvManager extends Module {
                         }
 
                         if (this.mode.getValue() == 0 || this.mode.getValue() == 2) {
+                            if (this.organizeOffhandIfNeeded()) {
+                                return;
+                            }
                             if (this.autoArmor.getValue()) {
                             for (int i = 0; i < 4; i++) {
                                 int equippedSlot = equippedArmorSlots.get(i);
@@ -674,6 +782,8 @@ public class InvManager extends Module {
                                                 this.clickSlot(mc.thePlayer.inventoryContainer.windowId, this.convertSlotIndex(i), 1, 4);
                                                 return;
                                             } else if (!isThrowable && !isOre && !isGapple && !isProtectedWater && !isProtectedBowArrow
+                                                    && !ItemUtil.isRequiredInventoryItem(stack)
+                                                    && ItemFilter.shouldTrash(stack)
                                                     && (ItemUtil.isNotSpecialItem(stack) || (isBlock && currentBlockCount >= this.blocks.getValue()))) {
                                                 this.clickSlot(mc.thePlayer.inventoryContainer.windowId, this.convertSlotIndex(i), 1, 4);
                                                 return;
@@ -684,6 +794,9 @@ public class InvManager extends Module {
                                 }
                             }
                         } else if (this.mode.getValue() == 1) {
+                            if (this.organizeOffhandIfNeeded()) {
+                                return;
+                            }
                             if (this.autoArmor.getValue()) {
                                 for (int i = 0; i < 4; i++) {
                                     int equippedSlot = ItemUtil.findArmorInventorySlot(i, true);
@@ -901,6 +1014,8 @@ public class InvManager extends Module {
                                             if (!keepOre.getValue() && isOre) {
                                                 itemsToDrop.add(i);
                                             } else if (!isThrowable && !isOre && !isGapple && !isProtectedWater && !isProtectedBowArrow
+                                                    && !ItemUtil.isRequiredInventoryItem(stack)
+                                                    && ItemFilter.shouldTrash(stack)
                                                     && (ItemUtil.isNotSpecialItem(stack) || (isBlock && currentBlockCount >= blocks.getValue()))) {
                                                 itemsToDrop.add(i);
                                             }

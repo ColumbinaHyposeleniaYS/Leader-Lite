@@ -83,14 +83,18 @@ dependencies {
         isTransitive = false
     }
     annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT")
+    // Unfair port: some ported packet classes use lombok
+    compileOnly("org.projectlombok:lombok:1.18.34")
+    // Unfair port: BlockStatePredictionHandler uses fastutil
+    shadowImpl("it.unimi.dsi:fastutil:8.5.13")
+    annotationProcessor("org.projectlombok:lombok:1.18.34")
     // If you don't want to log in with your real minecraft account, remove this line
     runtimeOnly("me.djtheredstoner:DevAuth-forge-legacy:1.2.1")
 
     // === ViaForge skid: viaversion family, shaded into the jar ===
-    shadowImpl("com.viaversion:viaversion-common:5.8.0")
-    shadowImpl("com.viaversion:viabackwards-common:5.8.0")
-    shadowImpl("com.viaversion:viarewind-common:4.0.15")
-    shadowImpl("com.viaversion:viaaprilfools-common:4.1.0")
+    shadowImpl("com.viaversion:viaversion-common:5.11.0")
+    shadowImpl("com.viaversion:viabackwards-common:5.11.0")
+    shadowImpl("com.viaversion:viarewind-common:4.1.3")
     shadowImpl("net.raphimc:ViaLegacy:3.0.14") {
         // Minecraft 1.8.9 ships its own gson
         exclude(group = "com.google.code.gson", module = "gson")

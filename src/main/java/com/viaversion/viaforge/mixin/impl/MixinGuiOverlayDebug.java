@@ -1,25 +1,12 @@
 /*
- * This file is part of ViaForge - https://github.com/ViaVersion/ViaForge
- * Copyright (C) 2021-2026 Florian Reuth <git@florianreuth.de> and contributors
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Unfair port: show the target protocol version on the F3 debug screen.
  */
 
 package com.viaversion.viaforge.mixin.impl;
 
+import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import com.viaversion.viaforge.common.ViaForgeCommon;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiOverlayDebug;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -33,12 +20,11 @@ public class MixinGuiOverlayDebug {
 
     @Inject(method = "getDebugInfoRight", at = @At(value = "TAIL"))
     public void addViaForgeVersion(CallbackInfoReturnable<List<String>> cir) {
-        final ViaForgeCommon common = ViaForgeCommon.getManager();
-        final ProtocolVersion version = ViaForgeCommon.getManager().getTargetVersion();
+        final ProtocolVersion version = ViaLoadingBase.getInstance().getTargetVersion();
 
-        if (common.getConfig().isShowProtocolVersionInF3() && version != common.getNativeVersion() && !common.getPlatform().isSingleplayer()) {
+        if (version != ProtocolVersion.v1_8 && !Minecraft.getMinecraft().isSingleplayer()) {
             cir.getReturnValue().add("");
-            cir.getReturnValue().add("ViaForge: " + version.toString());
+            cir.getReturnValue().add("Via: " + version.getName());
         }
     }
 

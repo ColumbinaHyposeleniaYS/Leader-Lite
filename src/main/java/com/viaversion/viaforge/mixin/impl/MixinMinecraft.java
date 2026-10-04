@@ -10,15 +10,21 @@
 
 package com.viaversion.viaforge.mixin.impl;
 
+import com.viaversion.viabackwards.protocol.v1_20_3to1_20_2.Protocol1_20_3To1_20_2;
+import com.viaversion.viaversion.api.protocol.packet.PacketWrapper;
+import com.viaversion.viaversion.api.type.Types;
+import com.viaversion.viaversion.protocols.v1_20to1_20_2.packet.ServerboundConfigurationPackets1_20_2;
+import de.florianmichael.viamcp.ViaMCP;
+import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import com.viaversion.viaforge.common.ViaForgeCommon;
-import com.viaversion.viaforge.compat.ModernOffhandInteraction;
-import com.viaversion.viaforge.compat.ModernOffhandKeyBinding;
+import cn.unfair.util.via.ModernOffhandInteraction;
+import cn.unfair.util.via.ModernOffhandKeyBinding;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.multiplayer.PlayerControllerMP;
 import net.minecraft.client.settings.GameSettings;
+import net.minecraft.entity.player.EnumPlayerModelParts;
 import net.minecraft.util.MovingObjectPosition;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -48,6 +54,48 @@ public abstract class MixinMinecraft {
 
     @Unique
     private boolean viaforge$delayedAttackSwing;
+
+    /**
+     * Unfair: during the 1.20.2+ configuration phase, reply with brand and
+     * client information once ViaMCP stored the user connection.
+     */
+    @Inject(method = "runTick", at = @At("HEAD"))
+    private void viaforge$sendConfigurationPackets(CallbackInfo ci) {
+        if (ViaMCP.INSTANCE == null || ViaMCP.INSTANCE.user == null) {
+            return;
+        }
+
+        try {
+            PacketWrapper packetBrand = PacketWrapper.create(
+                    ServerboundConfigurationPackets1_20_2.CUSTOM_PAYLOAD, ViaMCP.INSTANCE.user);
+            packetBrand.write(Types.STRING, "minecraft:brand");
+            packetBrand.write(Types.STRING, "vanilla");
+            packetBrand.sendToServer(Protocol1_20_3To1_20_2.class);
+
+            packetBrand = PacketWrapper.create(
+                    ServerboundConfigurationPackets1_20_2.CLIENT_INFORMATION, ViaMCP.INSTANCE.user);
+            packetBrand.write(Types.STRING, this.gameSettings.language.toLowerCase());
+            packetBrand.write(Types.BYTE, (byte) this.gameSettings.renderDistanceChunks);
+            packetBrand.write(Types.VAR_INT, this.gameSettings.chatVisibility.ordinal());
+            packetBrand.write(Types.BOOLEAN, this.gameSettings.chatColours);
+
+            int mask = 0;
+            for (EnumPlayerModelParts part : this.gameSettings.getModelParts()) {
+                mask |= part.getPartMask();
+            }
+
+            packetBrand.write(Types.UNSIGNED_BYTE, (short) mask);
+            packetBrand.write(Types.VAR_INT, 1);
+            packetBrand.write(Types.BOOLEAN, true);
+            packetBrand.write(Types.BOOLEAN, true);
+            packetBrand.sendToServer(Protocol1_20_3To1_20_2.class);
+        } catch (Exception exception) {
+            System.out.println("ViaVersion packet transformation failed (expected during connection setup): "
+                    + exception.getMessage());
+        } finally {
+            ViaMCP.INSTANCE.user = null;
+        }
+    }
 
     @Inject(method = "rightClickMouse", at = @At("HEAD"), require = 0)
     private void viaforge$beginModernRightClick(CallbackInfo ci) {
@@ -89,8 +137,8 @@ public abstract class MixinMinecraft {
         }
 
         final ModernOffhandKeyBinding keys = (ModernOffhandKeyBinding) gameSettings;
-        if (keys.viaforge$getSwapOffhandKey() != null
-                && keys.viaforge$getSwapOffhandKey().isPressed()) {
+        if (keys.getSwapOffhandKey() != null
+                && keys.getSwapOffhandKey().isPressed()) {
             ModernOffhandInteraction.sendSwapItemWithOffhand(thePlayer);
         }
     }
@@ -144,8 +192,7 @@ public abstract class MixinMinecraft {
     }
 
     private static boolean viaforge$isModernTarget() {
-        final ViaForgeCommon manager = ViaForgeCommon.getManager();
-        return manager != null && manager.getTargetVersion() == ProtocolVersion.v1_20_5;
+        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
     }
 
 }

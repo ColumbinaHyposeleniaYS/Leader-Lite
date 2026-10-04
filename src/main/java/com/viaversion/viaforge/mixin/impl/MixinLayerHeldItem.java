@@ -3,9 +3,9 @@
  */
 package com.viaversion.viaforge.mixin.impl;
 
+import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import com.viaversion.viaforge.common.ViaForgeCommon;
-import com.viaversion.viaforge.compat.ModernOffhandInventory;
+import cn.unfair.util.via.ModernOffhandInventory;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.ModelBiped;
 import net.minecraft.client.renderer.GlStateManager;
@@ -47,7 +47,7 @@ public abstract class MixinLayerHeldItem {
             return;
         }
 
-        final ItemStack stack = ((ModernOffhandInventory) ((EntityPlayer) entity).inventory).viaforge$getOffhand();
+        final ItemStack stack = ((ModernOffhandInventory) ((EntityPlayer) entity).inventory).getOffhand();
         if (stack == null || !(livingEntityRenderer.getMainModel() instanceof ModelBiped)) {
             return;
         }
@@ -82,7 +82,6 @@ public abstract class MixinLayerHeldItem {
     }
 
     private static boolean viaforge$isModernTarget() {
-        final ViaForgeCommon manager = ViaForgeCommon.getManager();
-        return manager != null && manager.getTargetVersion() == ProtocolVersion.v1_20_5;
+        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
     }
 }

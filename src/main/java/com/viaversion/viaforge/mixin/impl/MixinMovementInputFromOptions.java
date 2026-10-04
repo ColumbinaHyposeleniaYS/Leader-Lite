@@ -10,7 +10,7 @@
 
 package com.viaversion.viaforge.mixin.impl;
 
-import com.viaversion.viaforge.compat.ModernPlayerPhysics;
+import cn.unfair.util.via.ModernPlayerPhysics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.util.MovementInput;
@@ -27,7 +27,7 @@ public abstract class MixinMovementInputFromOptions {
     private void viaforge$applyModernMovementInput(CallbackInfo ci) {
         final EntityPlayerSP player = Minecraft.getMinecraft().thePlayer;
         if (player instanceof ModernPlayerPhysics) {
-            ((ModernPlayerPhysics) player).viaforge$updateModernMovementInput(
+            ((ModernPlayerPhysics) player).updateModernMovementInput(
                     (MovementInput) (Object) this
             );
         }

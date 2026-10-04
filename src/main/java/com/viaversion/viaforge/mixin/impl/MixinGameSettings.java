@@ -3,7 +3,7 @@
  */
 package com.viaversion.viaforge.mixin.impl;
 
-import com.viaversion.viaforge.compat.ModernOffhandKeyBinding;
+import cn.unfair.util.via.ModernOffhandKeyBinding;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
@@ -27,7 +27,7 @@ public class MixinGameSettings implements ModernOffhandKeyBinding {
     private boolean viaforge$offhandKeyRegistered;
 
     @Override
-    public KeyBinding viaforge$getSwapOffhandKey() {
+    public KeyBinding getSwapOffhandKey() {
         return viaforge$swapOffhandKey;
     }
 

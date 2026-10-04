@@ -19,6 +19,7 @@ import leader.property.properties.BooleanProperty;
 import leader.property.properties.IntProperty;
 import leader.property.properties.ModeProperty;
 import leader.util.ChatUtil;
+import leader.module.modules.misc.ItemFilter;
 import leader.util.ItemUtil;
 
 import java.util.*;
@@ -124,7 +125,8 @@ public class ChestStealer extends Module {
                                 if (this.keepProjectiles.getValue()) {
                                     for (int i = 0; i < invSize; i++) {
                                         if (container.getSlot(i).getHasStack()) {
-                                            if (this.isProjectileStack(container.getSlot(i).getStack())) {
+                                            if (this.isProjectileStack(container.getSlot(i).getStack())
+                                                    && ItemFilter.shouldTake(container.getSlot(i).getStack())) {
                                                 slotsToTake.add(i);
                                                 takenSlots.add(i);
                                             }
@@ -183,7 +185,8 @@ public class ChestStealer extends Module {
                                 }
                                 int swordInvSlot = ItemUtil.findSwordInInventorySlot(0, true);
                                 double currentDmg = swordInvSlot != -1 ? ItemUtil.getAttackBonus(mc.thePlayer.inventory.getStackInSlot(swordInvSlot)) : 0.0;
-                                if (bestDamage > currentDmg && !takenSlots.contains(bestSword)) {
+                                if (bestDamage > currentDmg && !takenSlots.contains(bestSword)
+                                        && bestSword >= 0 && ItemFilter.shouldTake(container.getSlot(bestSword).getStack())) {
                                     slotsToTake.add(bestSword);
                                     takenSlots.add(bestSword);
                                 }
@@ -192,7 +195,8 @@ public class ChestStealer extends Module {
                                     int currentArmorSlot = ItemUtil.findArmorInventorySlot(armorType, true);
                                     double currentProt = currentArmorSlot != -1 ? ItemUtil.getArmorProtection(mc.thePlayer.inventory.getStackInSlot(currentArmorSlot)) : 0.0;
                                     int bestSlot = bestArmorSlots[armorType];
-                                    if (bestArmorProtection[armorType] > currentProt && !takenSlots.contains(bestSlot)) {
+                                    if (bestArmorProtection[armorType] > currentProt && !takenSlots.contains(bestSlot)
+                                            && bestSlot >= 0 && ItemFilter.shouldTake(container.getSlot(bestSlot).getStack())) {
                                         slotsToTake.add(bestSlot);
                                         takenSlots.add(bestSlot);
                                     }
@@ -200,21 +204,24 @@ public class ChestStealer extends Module {
 
                                 int currentPick = ItemUtil.findInventorySlot("pickaxe", 0, true);
                                 float currentPickEff = currentPick != -1 ? ItemUtil.getToolEfficiency(mc.thePlayer.inventory.getStackInSlot(currentPick)) : 1.0F;
-                                if (bestPickaxeEfficiency > currentPickEff && !takenSlots.contains(bestPickaxeSlot)) {
+                                if (bestPickaxeEfficiency > currentPickEff && !takenSlots.contains(bestPickaxeSlot)
+                                        && bestPickaxeSlot >= 0 && ItemFilter.shouldTake(container.getSlot(bestPickaxeSlot).getStack())) {
                                     slotsToTake.add(bestPickaxeSlot);
                                     takenSlots.add(bestPickaxeSlot);
                                 }
 
                                 int currentShovel = ItemUtil.findInventorySlot("shovel", 0, true);
                                 float currentShovelEff = currentShovel != -1 ? ItemUtil.getToolEfficiency(mc.thePlayer.inventory.getStackInSlot(currentShovel)) : 1.0F;
-                                if (bestShovelEfficiency > currentShovelEff && !takenSlots.contains(bestShovelSlot)) {
+                                if (bestShovelEfficiency > currentShovelEff && !takenSlots.contains(bestShovelSlot)
+                                        && bestShovelSlot >= 0 && ItemFilter.shouldTake(container.getSlot(bestShovelSlot).getStack())) {
                                     slotsToTake.add(bestShovelSlot);
                                     takenSlots.add(bestShovelSlot);
                                 }
 
                                 int currentAxe = ItemUtil.findInventorySlot("axe", 0, true);
                                 float currentAxeEff = currentAxe != -1 ? ItemUtil.getToolEfficiency(mc.thePlayer.inventory.getStackInSlot(currentAxe)) : 1.0F;
-                                if (bestAxeEfficiency > currentAxeEff && !takenSlots.contains(bestAxeSlot)) {
+                                if (bestAxeEfficiency > currentAxeEff && !takenSlots.contains(bestAxeSlot)
+                                        && bestAxeSlot >= 0 && ItemFilter.shouldTake(container.getSlot(bestAxeSlot).getStack())) {
                                     slotsToTake.add(bestAxeSlot);
                                     takenSlots.add(bestAxeSlot);
                                 }
@@ -224,7 +231,8 @@ public class ChestStealer extends Module {
                                     if (container.getSlot(i).getHasStack()) {
                                         ItemStack stack = container.getSlot(i).getStack();
                                         if (this.keepProjectiles.getValue() && this.isProjectileStack(stack)) continue;
-                                        if (ItemUtil.isNotSpecialItem(stack)) continue;
+                                        if (!ItemUtil.isRequiredInventoryItem(stack) && ItemUtil.isNotSpecialItem(stack)) continue;
+                                        if (!ItemFilter.shouldTake(stack)) continue;
                                         slotsToTake.add(i);
                                         takenSlots.add(i);
                                     }
@@ -234,6 +242,7 @@ public class ChestStealer extends Module {
                                     if (container.getSlot(i).getHasStack()) {
                                         ItemStack stack = container.getSlot(i).getStack();
                                         if (this.keepProjectiles.getValue() && this.isProjectileStack(stack)) continue;
+                                        if (!ItemFilter.shouldTake(stack)) continue;
                                         slotsToTake.add(i);
                                     }
                                 }
@@ -262,8 +271,9 @@ public class ChestStealer extends Module {
                                 for (int i = 0; i < invSize; i++) {
                                     if (container.getSlot(i).getHasStack()) {
                                         ItemStack stack = container.getSlot(i).getStack();
-                                        if (this.skipTrash.getValue() && ItemUtil.isNotSpecialItem(stack)) continue;
+                                        if (this.skipTrash.getValue() && !ItemUtil.isRequiredInventoryItem(stack) && ItemUtil.isNotSpecialItem(stack)) continue;
                                         if (this.keepProjectiles.getValue() && this.isProjectileStack(stack)) continue;
+                                        if (!ItemFilter.shouldTake(stack)) continue;
                                         allEmpty = false;
                                         break;
                                     }
@@ -289,7 +299,7 @@ public class ChestStealer extends Module {
                                     for (int i = 0; i < inventory.getSizeInventory(); i++) {
                                         if (container.getSlot(i).getHasStack()) {
                                             ItemStack stack = container.getSlot(i).getStack();
-                                            if (this.isProjectileStack(stack)) {
+                                            if (this.isProjectileStack(stack) && ItemFilter.shouldTake(stack)) {
                                                 this.shiftClick(container.windowId, i);
                                                 return;
                                             }
@@ -349,7 +359,8 @@ public class ChestStealer extends Module {
 
                                 int swordInInventorySlot = ItemUtil.findSwordInInventorySlot(0, true);
                                 double damage = swordInInventorySlot != -1 ? ItemUtil.getAttackBonus(mc.thePlayer.inventory.getStackInSlot(swordInInventorySlot)) : 0.0;
-                                if (bestDamage > damage) {
+                                if (bestDamage > damage && bestSword >= 0
+                                        && ItemFilter.shouldTake(container.getSlot(bestSword).getStack())) {
                                     this.shiftClick(container.windowId, bestSword);
                                     return;
                                 }
@@ -359,7 +370,8 @@ public class ChestStealer extends Module {
                                     double protectionLevel = slot != -1
                                             ? ItemUtil.getArmorProtection(mc.thePlayer.inventory.getStackInSlot(slot))
                                             : 0.0;
-                                    if (bestArmorProtection[i] > protectionLevel) {
+                                    if (bestArmorProtection[i] > protectionLevel && bestArmorSlots[i] >= 0
+                                            && ItemFilter.shouldTake(container.getSlot(bestArmorSlots[i]).getStack())) {
                                         this.shiftClick(container.windowId, bestArmorSlots[i]);
                                         return;
                                     }
@@ -367,21 +379,24 @@ public class ChestStealer extends Module {
 
                                 int pickaxeSlot = ItemUtil.findInventorySlot("pickaxe", 0, true);
                                 float pickaxeEfficiency = pickaxeSlot != -1 ? ItemUtil.getToolEfficiency(mc.thePlayer.inventory.getStackInSlot(pickaxeSlot)) : 1.0F;
-                                if (bestPickaxeEfficiency > pickaxeEfficiency) {
+                                if (bestPickaxeEfficiency > pickaxeEfficiency && bestPickaxeSlot >= 0
+                                        && ItemFilter.shouldTake(container.getSlot(bestPickaxeSlot).getStack())) {
                                     this.shiftClick(container.windowId, bestPickaxeSlot);
                                     return;
                                 }
 
                                 int shovelSlot = ItemUtil.findInventorySlot("shovel", 0, true);
                                 float shovelEfficiency = shovelSlot != -1 ? ItemUtil.getToolEfficiency(mc.thePlayer.inventory.getStackInSlot(shovelSlot)) : 1.0F;
-                                if (bestShovelEfficiency > shovelEfficiency) {
+                                if (bestShovelEfficiency > shovelEfficiency && bestShovelSlot >= 0
+                                        && ItemFilter.shouldTake(container.getSlot(bestShovelSlot).getStack())) {
                                     this.shiftClick(container.windowId, bestShovelSlot);
                                     return;
                                 }
 
                                 int axeSlot = ItemUtil.findInventorySlot("axe", 0, true);
                                 float efficiency = axeSlot != -1 ? ItemUtil.getToolEfficiency(mc.thePlayer.inventory.getStackInSlot(axeSlot)) : 1.0F;
-                                if (bestAxeEfficiency > efficiency) {
+                                if (bestAxeEfficiency > efficiency && bestAxeSlot >= 0
+                                        && ItemFilter.shouldTake(container.getSlot(bestAxeSlot).getStack())) {
                                     this.shiftClick(container.windowId, bestAxeSlot);
                                     return;
                                 }
@@ -393,10 +408,14 @@ public class ChestStealer extends Module {
                                     if (this.keepProjectiles.getValue() && this.isProjectileStack(stack)) {
                                         continue;
                                     }
-                                    if (!this.skipTrash.getValue() || !ItemUtil.isNotSpecialItem(stack)) {
-                                        this.shiftClick(container.windowId, i);
-                                        return;
+                                    if (this.skipTrash.getValue() && !ItemUtil.isRequiredInventoryItem(stack) && ItemUtil.isNotSpecialItem(stack)) {
+                                        continue;
                                     }
+                                    if (!ItemFilter.shouldTake(stack)) {
+                                        continue;
+                                    }
+                                    this.shiftClick(container.windowId, i);
+                                    return;
                                 }
                             }
 
