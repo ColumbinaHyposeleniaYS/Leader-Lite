@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'B*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', '**/*.gradle*', 'gradle.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Build (compile, shadow, Java 8 downgrade)
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Read release notes
+        if: ${{ hashFiles('.github/RELEASE_NOTES.md') != '' }}
+        run: |
+          {
+            echo 'notes<<RELEASE_NOTES_EOF'
+            cat .github/RELEASE_NOTES.md
+            echo 'RELEASE_NOTES_EOF'
+          } >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          ARGS=( "$TAG_NAME" --title "Leader Lite ${TAG_NAME}" --generate-notes )
+          if [ -n "${notes:-}" ]; then
+            ARGS+=( --notes "$notes" )
+          fi
+          gh release create "${ARGS[@]}"
+          gh release upload "$TAG_NAME" build/libs/*.jar
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Leader-Lite-${{ github.ref_name }}
+          path: build/libs/*.jar
+          if-no-files-found: error
