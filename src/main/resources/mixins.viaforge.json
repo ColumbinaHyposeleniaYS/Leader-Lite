@@ -2,6 +2,10 @@
   "required": true,
   "minVersion": "0.7.5",
   "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "MixinBlock",
+    "MixinItem"
+  ],
   "package": "com.viaversion.viaforge.mixin.impl",
   "refmap": "mixins.leader.refmap.json",
   "client": [
@@ -32,8 +36,6 @@
     "connect.MixinNetworkManager_5",
     "javadowngrader.MixinBulkChunkType",
     "javadowngrader.MixinChunkType",
-    "MixinBlock",
-    "MixinItem",
     "MixinChunk",
     "MixinWorldClient"
   ],

@@ -18,7 +18,6 @@
 package com.viaversion.viaforge.mixin.impl;
 
 import leader.util.via.ModernOffhandKeyBinding;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.client.settings.KeyBinding;
 import org.lwjgl.input.Keyboard;
@@ -28,7 +27,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.io.File;
 import java.util.Arrays;
 
 @Mixin(GameSettings.class)
@@ -46,32 +44,23 @@ public class MixinGameSettings implements ModernOffhandKeyBinding {
     }
 
     /**
-     * Registers the swap-offhand binding BEFORE loadOptions() runs, so a
-     * user rebind persisted in options.txt ("key_key.swapOffhand:..") is
-     * applied on every start. The old RETURN injection ran after the file
-     * had already been read and silently dropped saved rebinds.
+     * Registers the swap-offhand binding at the HEAD of loadOptions(), which the
+     * (Minecraft, File) constructor calls before reading options.txt. This keeps
+     * the original goal (a saved "key.swapOffhand" rebind is applied on every
+     * start) with a 0.7.11-safe injection point.
+     *
+     * NOTE: do NOT inject into the GameSettings <init> with @At("INVOKE").
+     * Mixin 0.7.11's CallbackInjector.sanityCheck hard-fails at APPLY time for
+     * any constructor target that is not RETURN ("Found injection point type
+     * BeforeInvoke targetting a ctor ... Only RETURN allowed for a ctor target"),
+     * which took the whole GameSettings class down (NoClassDefFoundError) and
+     * crashed the game during startGame. The previous RETURN-on-ctor fallback is
+     * also gone: it ran after loadOptions had already parsed options.txt, so
+     * saved rebinds were silently dropped; loadOptions-HEAD strictly dominates it.
      */
-    @Inject(
-            method = "<init>(Lnet/minecraft/client/Minecraft;Ljava/io/File;)V",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/settings/GameSettings;loadOptions()V"),
-            require = 0
-    )
-    private void viaforge$registerOffhandKeyBeforeLoad(Minecraft minecraft, File optionsFile, CallbackInfo ci) {
+    @Inject(method = "loadOptions", at = @At("HEAD"), require = 1)
+    private void viaforge$registerOffhandKeyBeforeLoad(CallbackInfo ci) {
         viaforge$registerOffhandKey();
-    }
-
-    /**
-     * Fallback: if the loadOptions() INVOKE point ever drifts, register at
-     * constructor end (old behavior - binding works, saved rebinds are not
-     * reloaded). Also refreshes the static key array hash after load either way.
-     */
-    @Inject(method = "<init>(Lnet/minecraft/client/Minecraft;Ljava/io/File;)V", at = @At("RETURN"))
-    private void viaforge$registerOffhandKeyAtReturn(Minecraft minecraft, File optionsFile, CallbackInfo ci) {
-        final boolean wasRegistered = viaforge$offhandKeyRegistered;
-        viaforge$registerOffhandKey();
-        if (wasRegistered || viaforge$offhandKeyRegistered) {
-            KeyBinding.resetKeyBindingArrayAndHash();
-        }
     }
 
     @Unique

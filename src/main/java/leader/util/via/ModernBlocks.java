@@ -2,9 +2,14 @@
 // Original location: cn.unfair.util.via - adapted to leader.util.via for Leader-Lite.
 package leader.util.via;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.ModernBlockRegistrar;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.util.ResourceLocation;
 
@@ -48,6 +53,15 @@ public final class ModernBlocks {
     // Item.registerItemBlock(Block) is therefore resolved reflectively:
     // "func_179216_c" in the SRG (production) runtime, "registerItemBlock"
     // in the MCP/dev environment.
+    //
+    // 2026-10 hardening (after the B2.1 field test): MixinBlock's callback is
+    // what normally fills the block registry, but an injection-point mismatch
+    // left it silently unwoven (@Inject require defaults to 0), every modern
+    // name resolved to the RegistryNamespacedDefaultedByKey default (air) and
+    // registerItemBlock(air) died on item id 0. So: re-run the (idempotent)
+    // registrar here, skip anything that still resolves to air/unmapped, log
+    // the InvocationTargetException CAUSE (not just the wrapper) and print a
+    // success/failure summary instead of a blanket "registered" line.
     // ------------------------------------------------------------------
 
     private static final String[] EARLY_MODERN = {
@@ -88,29 +102,51 @@ public final class ModernBlocks {
     private static volatile Method registerItemBlock;
 
     public static void registerItemBlocks() {
+        // Belt & braces: MixinBlock's TAIL callback should have filled the registry
+        // already, but if its injection ever drifts again, re-run the idempotent
+        // registrar right here so the ItemBlocks below can still resolve their
+        // target blocks. Never let this kill Item.registerItems.
+        try {
+            ModernBlockRegistrar.registerAll();
+        } catch (Throwable t) {
+            System.out.println("[Leader-Lite] Modern block re-registration failed (continuing): " + t);
+        }
+
         Method method = lookupRegisterItemBlock();
         if (method == null) {
             System.out.println("[Leader-Lite] Item.registerItemBlock(Block) not found, modern ItemBlocks not registered");
             return;
         }
-        invoke(method, dirt_path());
-        invoke(method, campfire());
-        invoke(method, soul_campfire());
-        for (String name : EARLY_MODERN) {
-            invoke(method, registered(name));
-        }
-        for (String name : SHULKER_BOXES) {
-            invoke(method, registered(name));
-        }
-        for (String name : MODERN) {
-            invoke(method, registered(name));
-        }
-        for (String name : CORALS) {
-            if (!name.contains("wall_fan")) {
-                invoke(method, registered(name));
+
+        List<String> names = new ArrayList<String>();
+        names.add("dirt_path");
+        names.add("campfire");
+        names.add("soul_campfire");
+        for (String[] group : new String[][]{EARLY_MODERN, SHULKER_BOXES, MODERN, CORALS}) {
+            for (String name : group) {
+                if (name.contains("wall_fan")) {
+                    continue; // no separate ItemBlock wanted for wall fans
+                }
+                names.add(name);
             }
         }
-        System.out.println("[Leader-Lite] Modern ItemBlocks registered");
+
+        int ok = 0;
+        int fail = 0;
+        for (String name : names) {
+            Block block = registered(name);
+            if (block == null || block == Blocks.air || Block.blockRegistry.getNameForObject(block) == null) {
+                fail++;
+                System.out.println("[Leader-Lite] Skipping ItemBlock for '" + name + "': block not registered (got " + block + ")");
+                continue;
+            }
+            if (invoke(method, name, block)) {
+                ok++;
+            } else {
+                fail++;
+            }
+        }
+        System.out.println("[Leader-Lite] Modern ItemBlocks registered: " + ok + " ok, " + fail + " failed (of " + names.size() + ")");
     }
 
     private static Method lookupRegisterItemBlock() {
@@ -131,15 +167,21 @@ public final class ModernBlocks {
         return null;
     }
 
-    private static void invoke(Method method, Block block) {
-        if (block == null) {
-            System.out.println("[Leader-Lite] Skipping ItemBlock registration for unregistered block");
-            return;
-        }
+    private static boolean invoke(Method method, String name, Block block) {
         try {
             method.invoke(null, block);
+            return true;
+        } catch (InvocationTargetException t) {
+            Throwable cause = t.getCause() != null ? t.getCause() : t;
+            System.out.println("[Leader-Lite] Failed to register ItemBlock for '" + name + "' (" + block + "): " + cause);
+            StackTraceElement[] stack = cause.getStackTrace();
+            if (stack.length > 0) {
+                System.out.println("[Leader-Lite]   at " + stack[0]);
+            }
+            return false;
         } catch (Throwable t) {
-            System.out.println("[Leader-Lite] Failed to register ItemBlock for " + block + ": " + t);
+            System.out.println("[Leader-Lite] Failed to register ItemBlock for '" + name + "' (" + block + "): " + t);
+            return false;
         }
     }
 }

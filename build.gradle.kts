@@ -33,6 +33,13 @@ loom {
             property("mixin.debug", "true")
             arg("--tweakClass", "org.spongepowered.asm.launch.MixinTweaker")
         }
+        "server" {
+            // Headless validation: the common mixins (MixinBlock/MixinItem) weave on
+            // the dedicated server too, so runServer exercises the whole modern
+            // block/ItemBlock registration chain without needing a display.
+            property("mixin.debug", "true")
+            arg("--tweakClass", "org.spongepowered.asm.launch.MixinTweaker")
+        }
     }
     runConfigs {
         "client" {
@@ -41,7 +48,7 @@ loom {
                 vmArgs.remove("-XstartOnFirstThread")
             }
         }
-        remove(getByName("server"))
+        // "server" run config kept available for headless mixin validation.
     }
     forge {
         pack200Provider.set(dev.architectury.pack200.java.Pack200Adapter())

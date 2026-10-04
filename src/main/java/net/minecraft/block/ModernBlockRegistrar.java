@@ -11,7 +11,20 @@ import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
  */
 public final class ModernBlockRegistrar {
 
-    public static void registerAll() {
+    /**
+     * Idempotency guard: registerAll() may be invoked both by MixinBlock's TAIL
+     * callback and by ModernBlocks.registerItemBlocks() as a just-in-time
+     * self-heal. Re-registering would create fresh Block instances and overwrite
+     * the live entries, leaving stale duplicates behind, so only the first call
+     * actually registers.
+     */
+    private static volatile boolean done;
+
+    public static synchronized void registerAll() {
+        if (done) {
+            return;
+        }
+        done = true;
 
         register(198, "end_rod", new BlockEndRod().setModernMining(0.0F, ModernBlock.MiningTool.NONE, false).setLightLevel(0.9375F).setUnlocalizedName("endRod"));
         register(199, "chorus_plant", new BlockChorusPlant().setModernMining(0.4F, ModernBlock.MiningTool.AXE, false).setModernSwordSpeed(1.5F).setUnlocalizedName("chorusPlant"));
