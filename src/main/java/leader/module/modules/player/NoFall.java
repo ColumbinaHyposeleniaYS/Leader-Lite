@@ -13,7 +13,7 @@ import leader.events.UpdateEvent;
 import leader.mixin.IAccessorC03PacketPlayer;
 import leader.mixin.IAccessorMinecraft;
 import leader.management.RotationState;
-import cn.unfair.util.via.ViaProtocol;
+import leader.util.via.ViaProtocol;
 import leader.module.Module;
 import leader.util.*;
 import leader.property.properties.BooleanProperty;

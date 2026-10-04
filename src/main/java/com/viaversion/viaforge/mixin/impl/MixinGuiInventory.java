@@ -30,6 +30,6 @@ public abstract class MixinGuiInventory {
     }
 
     private static boolean viaforge$isModernTarget() {
-        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
+        return leader.util.via.ModernOffhandInteraction.isModernTarget();
     }
 }

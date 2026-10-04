@@ -19,7 +19,7 @@ import leader.module.Module;
 import leader.property.properties.BooleanProperty;
 import leader.property.properties.IntProperty;
 import leader.property.properties.ModeProperty;
-import cn.unfair.util.via.ModernOffhandInteraction;
+import leader.util.via.ModernOffhandInteraction;
 import leader.module.modules.misc.ItemFilter;
 import leader.util.ItemUtil;
 import leader.util.PacketUtil;

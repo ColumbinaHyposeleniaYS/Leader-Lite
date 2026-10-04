@@ -19,14 +19,14 @@
 package com.viaversion.viaforge.mixin.impl;
 
 import de.florianmichael.vialoadingbase.ViaLoadingBase;
-import cn.unfair.util.via.ViaVersionFix;
+import leader.util.via.ViaVersionFix;
 import com.viaversion.viaversion.api.connection.UserConnection;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
 import com.viaversion.viaversion.connection.ConnectionDetails;
-import cn.unfair.util.via.ModernPlayerPhysics;
-import cn.unfair.util.via.ModernOffhandInventory;
-import cn.unfair.util.via.ModernOffhandStorage;
-import cn.unfair.util.via.ModernSequenceStorage;
+import leader.util.via.ModernPlayerPhysics;
+import leader.util.via.ModernOffhandInventory;
+import leader.util.via.ModernOffhandStorage;
+import leader.util.via.ModernSequenceStorage;
 import com.viaversion.viarewind.protocol.v1_9to1_8.storage.PlayerPositionTracker;
 import io.netty.channel.Channel;
 import net.minecraft.client.Minecraft;
@@ -223,7 +223,7 @@ public class MixinNetHandlerPlayClient {
 
     @Unique
     private static boolean viaforge$isModernTarget() {
-        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
+        return leader.util.via.ModernOffhandInteraction.isModernTarget();
     }
 
 }

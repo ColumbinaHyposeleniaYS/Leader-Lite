@@ -1,7 +1,7 @@
 package net.minecraft.block;
 
-import cn.unfair.util.via.CampfireBlockTracker;
-import cn.unfair.util.via.ViaProtocol;
+import leader.util.via.CampfireBlockTracker;
+import leader.util.via.ViaProtocol;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.properties.PropertyBool;

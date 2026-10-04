@@ -3,7 +3,7 @@
  */
 package com.viaversion.viaforge.mixin.impl;
 
-import cn.unfair.util.via.ModernOffhandInventory;
+import leader.util.via.ModernOffhandInventory;
 import net.minecraft.entity.player.InventoryPlayer;
 import net.minecraft.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;

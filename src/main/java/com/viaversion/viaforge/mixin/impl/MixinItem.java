@@ -5,7 +5,7 @@
 
 package com.viaversion.viaforge.mixin.impl;
 
-import cn.unfair.util.via.ModernBlocks;
+import leader.util.via.ModernBlocks;
 import net.minecraft.block.Block;
 import net.minecraft.block.ModernBlock;
 import net.minecraft.item.Item;

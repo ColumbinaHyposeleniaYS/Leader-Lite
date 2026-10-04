@@ -1,6 +1,6 @@
 package leader.module.modules.movement;
 
-import cn.unfair.util.via.ViaProtocol;
+import leader.util.via.ViaProtocol;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
 import leader.event.EventTarget;
 import leader.event.types.EventType;

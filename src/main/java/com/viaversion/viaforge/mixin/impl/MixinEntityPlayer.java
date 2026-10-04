@@ -12,9 +12,9 @@ package com.viaversion.viaforge.mixin.impl;
 
 import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import cn.unfair.util.via.ModernOffhandInteraction;
-import cn.unfair.util.via.ModernOffhandInventory;
-import cn.unfair.util.via.ModernPlayerPhysics;
+import leader.util.via.ModernOffhandInteraction;
+import leader.util.via.ModernOffhandInventory;
+import leader.util.via.ModernPlayerPhysics;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.InventoryPlayer;
@@ -99,6 +99,6 @@ public abstract class MixinEntityPlayer {
     }
 
     private static boolean viaforge$isModernTarget() {
-        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
+        return leader.util.via.ModernOffhandInteraction.isModernTarget();
     }
 }

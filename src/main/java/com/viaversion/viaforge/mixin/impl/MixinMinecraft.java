@@ -17,8 +17,8 @@ import com.viaversion.viaversion.protocols.v1_20to1_20_2.packet.ServerboundConfi
 import de.florianmichael.viamcp.ViaMCP;
 import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import cn.unfair.util.via.ModernOffhandInteraction;
-import cn.unfair.util.via.ModernOffhandKeyBinding;
+import leader.util.via.ModernOffhandInteraction;
+import leader.util.via.ModernOffhandKeyBinding;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.GuiScreen;
@@ -192,7 +192,7 @@ public abstract class MixinMinecraft {
     }
 
     private static boolean viaforge$isModernTarget() {
-        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
+        return leader.util.via.ModernOffhandInteraction.isModernTarget();
     }
 
 }

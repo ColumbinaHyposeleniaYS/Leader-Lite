@@ -10,7 +10,7 @@
 
 package com.viaversion.viaforge.mixin.impl;
 
-import cn.unfair.util.via.ModernPlayerPhysics;
+import leader.util.via.ModernPlayerPhysics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.util.MovementInput;

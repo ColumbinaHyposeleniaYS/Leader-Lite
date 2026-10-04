@@ -12,9 +12,9 @@ package com.viaversion.viaforge.mixin.impl;
 
 import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import cn.unfair.util.via.ModernFluidPhysics;
-import cn.unfair.util.via.ModernHorizontalCollision;
-import cn.unfair.util.via.ModernPlayerPhysics;
+import leader.util.via.ModernFluidPhysics;
+import leader.util.via.ModernHorizontalCollision;
+import leader.util.via.ModernPlayerPhysics;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.material.Material;
@@ -995,7 +995,7 @@ public abstract class MixinEntity {
     }
 
     private static boolean viaforge$isModernTarget() {
-        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
+        return leader.util.via.ModernOffhandInteraction.isModernTarget();
     }
 
 }

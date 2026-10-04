@@ -12,7 +12,7 @@ package com.viaversion.viaforge.mixin.impl;
 
 import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import cn.unfair.util.via.ModernOffhandInteraction;
+import leader.util.via.ModernOffhandInteraction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.client.multiplayer.PlayerControllerMP;
@@ -298,7 +298,7 @@ public abstract class MixinPlayerControllerMP {
 
     @Unique
     private static boolean viaforge$isModernTarget() {
-        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
+        return leader.util.via.ModernOffhandInteraction.isModernTarget();
     }
 
 }

@@ -18,8 +18,8 @@
 
 package de.florianmichael.viamcp;
 
-import cn.unfair.util.via.BlockStatePredictionHandler;
-import cn.unfair.util.via.ModernBlockStateTracker;
+import leader.util.via.BlockStatePredictionHandler;
+import leader.util.via.ModernBlockStateTracker;
 import com.mojang.authlib.GameProfile;
 import com.viaversion.viabackwards.protocol.v1_11to1_10.Protocol1_11To1_10;
 import com.viaversion.viabackwards.protocol.v1_20_3to1_20_2.Protocol1_20_3To1_20_2;
@@ -96,9 +96,9 @@ public class ViaMCP {
             });
             protocol.appendClientbound(ClientboundPackets1_20_3.BLOCK_CHANGED_ACK, wrapper -> {
                 sequence = wrapper.read(Types.VAR_INT);
-                if (Minecraft.getMinecraft().theWorld instanceof cn.unfair.util.via.ModernWorldClient) {
+                if (Minecraft.getMinecraft().theWorld instanceof leader.util.via.ModernWorldClient) {
                     try (BlockStatePredictionHandler handler =
-                                 ((cn.unfair.util.via.ModernWorldClient) Minecraft.getMinecraft().theWorld).predictionHandler()) {
+                                 ((leader.util.via.ModernWorldClient) Minecraft.getMinecraft().theWorld).predictionHandler()) {
                         handler.endPredictionsUpTo(sequence, Minecraft.getMinecraft().theWorld);
                     }
                 }

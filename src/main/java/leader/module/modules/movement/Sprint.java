@@ -4,7 +4,7 @@ import leader.event.EventTarget;
 import leader.events.TickEvent;
 import leader.mixin.IAccessorEntityLivingBase;
 import leader.module.Module;
-import cn.unfair.util.via.ViaProtocol;
+import leader.util.via.ViaProtocol;
 import leader.util.KeyBindUtil;
 import leader.property.properties.BooleanProperty;
 import net.minecraft.client.Minecraft;

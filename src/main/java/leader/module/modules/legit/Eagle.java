@@ -7,7 +7,7 @@ import leader.events.LoadWorldEvent;
 import leader.events.MoveInputEvent;
 import leader.events.TickEvent;
 import leader.module.Module;
-import cn.unfair.util.via.ViaProtocol;
+import leader.util.via.ViaProtocol;
 import leader.util.ChatUtil;
 import leader.util.ItemUtil;
 import leader.util.MoveUtil;

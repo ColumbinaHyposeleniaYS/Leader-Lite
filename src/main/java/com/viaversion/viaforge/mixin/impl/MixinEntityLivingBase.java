@@ -12,7 +12,7 @@ package com.viaversion.viaforge.mixin.impl;
 
 import de.florianmichael.vialoadingbase.ViaLoadingBase;
 import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
-import cn.unfair.util.via.ModernPlayerPhysics;
+import leader.util.via.ModernPlayerPhysics;
 import net.minecraft.block.BlockLadder;
 import net.minecraft.block.BlockTrapDoor;
 import net.minecraft.block.BlockFence;
@@ -40,7 +40,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(EntityLivingBase.class)
-public abstract class MixinEntityLivingBase implements cn.unfair.util.via.ModernSwing {
+public abstract class MixinEntityLivingBase implements leader.util.via.ModernSwing {
 
     @Shadow
     private boolean isSwingInProgress;
@@ -402,7 +402,7 @@ public abstract class MixinEntityLivingBase implements cn.unfair.util.via.Modern
 
     @Unique
     private static boolean viaforge$isModernTarget() {
-        return cn.unfair.util.via.ModernOffhandInteraction.isModernTarget();
+        return leader.util.via.ModernOffhandInteraction.isModernTarget();
     }
 
 }

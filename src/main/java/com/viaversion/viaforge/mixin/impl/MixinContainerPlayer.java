@@ -24,7 +24,7 @@ public class MixinContainerPlayer {
             EntityPlayer player,
             CallbackInfo ci
     ) {
-        if (cn.unfair.util.via.ModernOffhandInteraction.isModernTarget()
+        if (leader.util.via.ModernOffhandInteraction.isModernTarget()
                 && player.worldObj.isRemote) {
             ((ContainerAccessor) this).viaforge$addSlotToContainer(
                     new Slot(inventory, 45, 77, 62)

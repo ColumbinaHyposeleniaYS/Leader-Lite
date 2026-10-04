@@ -1,7 +1,7 @@
 package net.minecraft.block;
 
-import cn.unfair.util.via.DirtPathBlockTracker;
-import cn.unfair.util.via.ViaProtocol;
+import leader.util.via.DirtPathBlockTracker;
+import leader.util.via.ViaProtocol;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
@@ -72,7 +72,7 @@ public class BlockDirtPath extends ModernBlock {
             case WEST:
             case EAST:
                 Block block = worldIn.getBlockState(pos).getBlock();
-                return !block.isOpaqueCube() && block != cn.unfair.util.via.ModernBlocks.dirt_path();
+                return !block.isOpaqueCube() && block != leader.util.via.ModernBlocks.dirt_path();
 
             default:
                 return super.shouldSideBeRendered(worldIn, pos, side);

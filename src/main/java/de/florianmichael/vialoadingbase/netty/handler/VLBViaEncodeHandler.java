@@ -18,7 +18,7 @@
 
 package de.florianmichael.vialoadingbase.netty.handler;
 
-import cn.unfair.util.via.ModernSequenceEncodeHandler;
+import leader.util.via.ModernSequenceEncodeHandler;
 import com.viaversion.viaversion.api.connection.UserConnection;
 import com.viaversion.viaversion.exception.CancelCodecException;
 import com.viaversion.viaversion.exception.CancelEncoderException;

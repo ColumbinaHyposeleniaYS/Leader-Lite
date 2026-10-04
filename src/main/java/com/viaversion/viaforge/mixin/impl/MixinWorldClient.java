@@ -5,8 +5,8 @@
 
 package com.viaversion.viaforge.mixin.impl;
 
-import cn.unfair.util.via.BlockStatePredictionHandler;
-import cn.unfair.util.via.ModernWorldClient;
+import leader.util.via.BlockStatePredictionHandler;
+import leader.util.via.ModernWorldClient;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;

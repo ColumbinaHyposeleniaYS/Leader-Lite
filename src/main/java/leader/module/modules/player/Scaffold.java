@@ -27,7 +27,7 @@ import leader.event.types.Priority;
 import leader.events.*;
 import leader.management.RotationState;
 import leader.mixin.IAccessorEntity;
-import cn.unfair.util.via.ModernOffhandInteraction;
+import leader.util.via.ModernOffhandInteraction;
 import leader.module.Module;
 import leader.module.modules.movement.LongJump;
 import leader.property.properties.BooleanProperty;

@@ -53,7 +53,7 @@ public class AttackOrder {
         } else if (ViaLoadingBase.getInstance().getTargetVersion().newerThanOrEqualTo(ProtocolVersion.v1_19)) {
             mc.getNetHandler().getNetworkManager().sendPacket(new ServerBoundInteractAttack(target));
             mc.getNetHandler().getNetworkManager().sendPacket(new ServerBoundSwing(EnumHand.MAIN_HAND));
-            ((cn.unfair.util.via.ModernSwing) mc.thePlayer).swingClientSide();
+            ((leader.util.via.ModernSwing) mc.thePlayer).swingClientSide();
         } else {
             mc.getNetHandler().getNetworkManager().sendPacket(new C02PacketUseEntity(target, C02PacketUseEntity.Action.ATTACK));
             mc.thePlayer.swingItem();
@@ -75,7 +75,7 @@ public class AttackOrder {
         } else if (ViaLoadingBase.getInstance().getTargetVersion().newerThanOrEqualTo(ProtocolVersion.v1_19)) {
             mc.getNetHandler().getNetworkManager().sendPacket(new ServerBoundInteractAttack(target));
             mc.getNetHandler().getNetworkManager().sendPacket(new ServerBoundSwing(EnumHand.MAIN_HAND));
-            ((cn.unfair.util.via.ModernSwing) mc.thePlayer).swingClientSide();
+            ((leader.util.via.ModernSwing) mc.thePlayer).swingClientSide();
         } else {
             mc.getNetHandler().getNetworkManager().sendPacket(new C02PacketUseEntity(target, C02PacketUseEntity.Action.ATTACK));
             mc.getNetHandler().getNetworkManager().sendPacket(new C0APacketAnimation());
