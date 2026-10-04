@@ -1,0 +1,7 @@
+{
+  "textures": {
+    "all": "blocks/poplar_shelf",
+    "particle": "blocks/stripped_poplar_log"
+  },
+  "parent": "block/template_shelf_inventory"
+}

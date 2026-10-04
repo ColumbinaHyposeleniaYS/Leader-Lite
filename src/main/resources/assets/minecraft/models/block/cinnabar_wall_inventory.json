@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "wall": "blocks/cinnabar"
+  },
+  "parent": "block/wall_inventory"
+}

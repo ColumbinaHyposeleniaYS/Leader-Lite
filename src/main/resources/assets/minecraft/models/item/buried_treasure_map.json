@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "items/buried_treasure_map"
+  },
+  "parent": "builtin/generated"
+}

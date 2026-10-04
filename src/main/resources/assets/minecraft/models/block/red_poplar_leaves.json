@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "all": "blocks/red_poplar_leaves"
+  },
+  "parent": "block/cube_all"
+}

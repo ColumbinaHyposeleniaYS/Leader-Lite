@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "all": "blocks/sulfur_bricks"
+  },
+  "parent": "block/cube_all"
+}

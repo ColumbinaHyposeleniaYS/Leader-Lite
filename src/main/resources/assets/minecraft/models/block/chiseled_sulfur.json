@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "all": "blocks/chiseled_sulfur"
+  },
+  "parent": "block/cube_all"
+}

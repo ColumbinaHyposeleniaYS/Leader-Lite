@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "items/warm_ocean_ruins_map"
+  },
+  "parent": "builtin/generated"
+}

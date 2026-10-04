@@ -1,0 +1,8 @@
+{
+  "textures": {
+    "bottom": "blocks/sulfur",
+    "side": "blocks/sulfur",
+    "top": "blocks/sulfur"
+  },
+  "parent": "block/slab"
+}

@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "all": "blocks/polished_sulfur"
+  },
+  "parent": "block/cube_all"
+}

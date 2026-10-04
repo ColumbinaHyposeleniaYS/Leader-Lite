@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "all": "blocks/polished_cinnabar"
+  },
+  "parent": "block/cube_all"
+}

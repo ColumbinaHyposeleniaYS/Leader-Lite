@@ -1,0 +1,8 @@
+{
+  "textures": {
+    "bottom": "blocks/magenta_wool",
+    "side": "blocks/magenta_wool",
+    "top": "blocks/magenta_wool"
+  },
+  "parent": "block/stairs"
+}

@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "items/swamp_hut_map"
+  },
+  "parent": "builtin/generated"
+}

@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "texture": "blocks/poplar_planks"
+  },
+  "parent": "block/template_fence_gate"
+}

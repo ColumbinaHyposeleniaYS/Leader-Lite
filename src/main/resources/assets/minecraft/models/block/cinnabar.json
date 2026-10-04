@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "all": "blocks/cinnabar"
+  },
+  "parent": "block/cube_all"
+}

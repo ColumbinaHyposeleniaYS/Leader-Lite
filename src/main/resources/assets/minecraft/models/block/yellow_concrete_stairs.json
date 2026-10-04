@@ -1,0 +1,8 @@
+{
+  "textures": {
+    "bottom": "blocks/yellow_concrete",
+    "side": "blocks/yellow_concrete",
+    "top": "blocks/yellow_concrete"
+  },
+  "parent": "block/stairs"
+}

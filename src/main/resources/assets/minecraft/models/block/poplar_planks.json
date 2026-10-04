@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "all": "blocks/poplar_planks"
+  },
+  "parent": "block/cube_all"
+}

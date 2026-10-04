@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "items/poplar_door"
+  },
+  "parent": "builtin/generated"
+}

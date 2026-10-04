@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "items/snowy_village_map"
+  },
+  "parent": "builtin/generated"
+}

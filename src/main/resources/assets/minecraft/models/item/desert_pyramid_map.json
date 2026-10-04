@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "items/desert_pyramid_map"
+  },
+  "parent": "builtin/generated"
+}

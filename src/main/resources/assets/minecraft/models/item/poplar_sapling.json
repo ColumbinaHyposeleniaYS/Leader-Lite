@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "blocks/poplar_sapling"
+  },
+  "parent": "builtin/generated"
+}

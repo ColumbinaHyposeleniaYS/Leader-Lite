@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "blocks/red_shrub"
+  },
+  "parent": "builtin/generated"
+}

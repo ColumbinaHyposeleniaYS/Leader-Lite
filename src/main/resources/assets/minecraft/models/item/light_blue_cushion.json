@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "items/light_blue_cushion"
+  },
+  "parent": "builtin/generated"
+}

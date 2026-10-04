@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "items/music_disc_bounce"
+  },
+  "parent": "item/template_music_disc"
+}

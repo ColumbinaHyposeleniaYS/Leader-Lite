@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "blocks/golden_dandelion"
+  },
+  "parent": "builtin/generated"
+}

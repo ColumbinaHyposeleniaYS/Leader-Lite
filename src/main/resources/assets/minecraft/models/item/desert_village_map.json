@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "items/desert_village_map"
+  },
+  "parent": "builtin/generated"
+}

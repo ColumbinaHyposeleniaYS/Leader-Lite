@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "items/buried_mineshaft_map"
+  },
+  "parent": "builtin/generated"
+}

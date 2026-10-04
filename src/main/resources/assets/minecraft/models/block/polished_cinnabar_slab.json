@@ -1,0 +1,8 @@
+{
+  "textures": {
+    "bottom": "blocks/polished_cinnabar",
+    "side": "blocks/polished_cinnabar",
+    "top": "blocks/polished_cinnabar"
+  },
+  "parent": "block/slab"
+}

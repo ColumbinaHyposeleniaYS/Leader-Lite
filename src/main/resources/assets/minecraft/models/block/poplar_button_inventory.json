@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "texture": "blocks/poplar_planks"
+  },
+  "parent": "block/button_inventory"
+}

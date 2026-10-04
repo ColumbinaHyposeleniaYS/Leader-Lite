@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "items/buried_trial_chambers_map"
+  },
+  "parent": "builtin/generated"
+}

@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "layer0": "items/woodland_mansion_map"
+  },
+  "parent": "builtin/generated"
+}

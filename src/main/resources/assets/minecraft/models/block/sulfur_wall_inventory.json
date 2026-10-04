@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "wall": "blocks/sulfur"
+  },
+  "parent": "block/wall_inventory"
+}

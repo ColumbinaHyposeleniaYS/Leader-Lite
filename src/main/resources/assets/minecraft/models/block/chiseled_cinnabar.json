@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "all": "blocks/chiseled_cinnabar"
+  },
+  "parent": "block/cube_all"
+}

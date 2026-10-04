@@ -1,0 +1,6 @@
+{
+  "textures": {
+    "all": "blocks/potent_sulfur"
+  },
+  "parent": "block/cube_all"
+}
