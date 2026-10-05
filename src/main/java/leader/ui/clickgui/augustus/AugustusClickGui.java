@@ -8,6 +8,7 @@ import leader.Leader;
 import leader.config.Config;
 import leader.module.Module;
 import leader.module.modules.render.FontManager;
+import leader.module.modules.render.GuiModule;
 import leader.module.modules.render.HUD;
 import leader.property.Property;
 import leader.property.properties.BooleanProperty;
@@ -143,9 +144,21 @@ public class AugustusClickGui extends GuiScreen {
     }
 
     private int getBackgroundAlpha() {
-        // Upstream read ClickGui#backgroundOpacity (Unfair-only property); Leader-Lite's
-        // GuiModule has no such option, so fall back to the upstream default alpha.
+        // Upstream read ClickGui#backgroundOpacity (Unfair-only property); the same knob
+        // is exposed as GuiModule#Opacity, falling back to the upstream default alpha.
+        GuiModule guiModule = guiModule();
+        if (guiModule != null) {
+            return MathHelper.clamp_int((int) (255.0F * guiModule.opacity.getValue() / 100.0F), 0, 255);
+        }
         return DEFAULT_BACKGROUND_ALPHA;
+    }
+
+    private static GuiModule guiModule() {
+        try {
+            return (GuiModule) Leader.moduleManager.modules.get(GuiModule.class);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public void selectModule(Module module) {
@@ -306,8 +319,13 @@ public class AugustusClickGui extends GuiScreen {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        ShaderElement.addBlurTask(() -> this.renderPostProcessMask(0xFFFFFFFF));
-        ShaderElement.addBloomTask(() -> this.renderPostProcessMask(0xFFFFFFFF));
+        GuiModule guiModule = guiModule();
+        if (guiModule == null || guiModule.blur.getValue()) {
+            ShaderElement.addBlurTask(() -> this.renderPostProcessMask(0xFFFFFFFF));
+        }
+        if (guiModule == null || guiModule.bloom.getValue()) {
+            ShaderElement.addBloomTask(() -> this.renderPostProcessMask(0xFFFFFFFF));
+        }
 
         drawTopIconBar(mouseX, mouseY);
 
