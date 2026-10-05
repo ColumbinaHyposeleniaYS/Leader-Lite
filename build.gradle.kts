@@ -5,7 +5,7 @@ import xyz.wagyourtail.jvmdg.gradle.task.ShadeJar
 plugins {
     idea
     java
-    id("gg.essential.loom") version "0.10.0.+"
+    id("gg.essential.loom") version "0.10.0.4"
     id("dev.architectury.architectury-pack200") version "0.1.3"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("xyz.wagyourtail.jvmdowngrader") version "1.3.6"

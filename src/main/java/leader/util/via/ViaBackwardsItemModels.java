@@ -38,6 +38,21 @@ public final class ViaBackwardsItemModels {
     private static final Set<String> BLOCK_MODEL_NAMES = new HashSet<>();
     private static boolean initialized;
 
+    // Names that MixinModelBakery actually managed to load+bake. The mesher only
+    // swaps the model when the baked variant exists, otherwise it falls back to
+    // whatever ViaBackwards mapped the item to.
+    private static final Set<String> BAKED_VIA_MODELS = new HashSet<>();
+
+    public static synchronized void markBakedViaModel(String name) {
+        if (name != null) {
+            BAKED_VIA_MODELS.add(name);
+        }
+    }
+
+    public static synchronized boolean isBakedViaModel(String name) {
+        return name != null && BAKED_VIA_MODELS.contains(name);
+    }
+
     private ViaBackwardsItemModels() {
     }
 

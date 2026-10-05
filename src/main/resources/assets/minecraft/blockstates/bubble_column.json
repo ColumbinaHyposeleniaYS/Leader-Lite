@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "drag=false": {
+      "model": "bubble_column"
+    },
+    "drag=true": {
+      "model": "bubble_column"
+    }
+  }
+}

@@ -37,7 +37,9 @@
     "javadowngrader.MixinBulkChunkType",
     "javadowngrader.MixinChunkType",
     "MixinChunk",
-    "MixinWorldClient"
+    "MixinWorldClient",
+    "MixinItemModelMesher",
+    "MixinModelBakery"
   ],
   "verbose": true
 }
