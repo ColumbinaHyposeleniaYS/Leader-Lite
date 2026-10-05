@@ -115,6 +115,12 @@ public final class ViaBackwardsItemModels {
         registerMappingSet("1.21.7to1.21.6", "1.21.7");
         registerMappingSet("1.21.9to1.21.7", "1.21.9");
         registerMappingSet("1.21.11to1.21.9", "1.21.11");
+        // The 26.x protocol pairs ship in ViaBackwards 5.12.0 but were never fed into
+        // the model tables, so every 26.x item resolved to null and kept its fallback
+        // model. Register them exactly like the 1.x pairs above.
+        registerMappingSet("26.1to1.21.11", "26.1");
+        registerMappingSet("26.2to26.1", "26.2");
+        registerMappingSet("26.3to26.2", "26.3");
 
         addModelName("respawn_anchor");
         addModelName("dirt_path");

@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = BlockItemPacketRewriter1_9.class, remap = false)
 public abstract class MixinViaRewindBlockItemPacketRewriter {
@@ -93,6 +94,29 @@ public abstract class MixinViaRewindBlockItemPacketRewriter {
         slot.write(Types.SHORT, (short) 45);
         slot.write(Types.ITEM1_8, item);
         slot.scheduleSend(Protocol1_9To1_8.class);
+    }
+
+    @Inject(method = "handleItemToClient", at = @At("RETURN"), remap = false, cancellable = true)
+    private void viaforge$clampItemCount(UserConnection connection, Item item, CallbackInfoReturnable<Item> cir) {
+        if (!viaforge$isModernTarget()) {
+            return;
+        }
+
+        final Item result = cir.getReturnValue();
+        if (result == null) {
+            return;
+        }
+
+        // 1.8 writes the stack count as a signed byte: anything above 127 arrives
+        // negative on the client (255 -> -1) and the count overlay stops rendering.
+        // Clamp into the displayable range, mirroring ViaFabricPlus' packet-side
+        // count handling. The server stays authoritative, this is display-only.
+        final int amount = result.amount();
+        if (amount < 1) {
+            result.setAmount(1);
+        } else if (amount > 127) {
+            result.setAmount(127);
+        }
     }
 
     private static boolean viaforge$isModernTarget() {
