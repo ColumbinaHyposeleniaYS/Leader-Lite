@@ -37,7 +37,7 @@ public abstract class MixinItemModelMesher {
      * transforms do not corrupt the 1.8 hand/GUI rendering.
      */
     @Inject(method = "getItemModel(Lnet/minecraft/item/ItemStack;)Lnet/minecraft/client/resources/model/IBakedModel;",
-            at = @At("RETURN"), require = 1)
+            at = @At("RETURN"), require = 1, cancellable = true)
     private void viaforge$viaModel(ItemStack stack, CallbackInfoReturnable<IBakedModel> cir) {
         if (stack == null || cir.getReturnValue() == null) {
             return;

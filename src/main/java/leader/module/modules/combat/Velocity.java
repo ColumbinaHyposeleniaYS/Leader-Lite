@@ -431,6 +431,7 @@ public class Velocity extends Module {
 
     @EventTarget
     public void onPacket(PacketEvent event) {
+        if (mc.thePlayer == null) return; // netty thread delivers packets before the player exists (Via login handshake)
         if (isStuckActive()) return;
         if (isEnabled() && event.getType() == EventType.RECEIVE && !event.isCancelled()) {
             if (event.getPacket() instanceof S12PacketEntityVelocity) {
